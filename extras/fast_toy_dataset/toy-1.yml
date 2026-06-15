@@ -1,0 +1,18 @@
+dataset: toy
+delivery_id: 1
+filetypes:
+    data_fits:
+        filename: .*\.fits
+        standard: fits
+    data_asdf:
+        filename: .*\.asdf
+        standard: asdf
+    data_parquet:
+        filename: .*\.parquet
+        standard: parquet
+time:
+    delivery_start_date: 2026-11-14
+delivery_meta:
+    schema_version: 0.1.0
+custom_metadata:
+    custom_parameter: 1

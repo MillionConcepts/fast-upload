@@ -1,0 +1,40 @@
+name: Run unit tests
+on: [ push ]
+jobs:
+    unit-tests:
+        runs-on: ubuntu-latest
+        strategy:
+            # Test on all released Pythons starting with the
+            # oldest one that's supported.
+            matrix:
+                python-version: ['3.11', '3.12', '3.13', '3.14']
+        steps:
+            - name: Check out code
+              uses: actions/checkout@v6
+
+            - name: Set up Python 3.11
+              uses: actions/setup-python@v6
+              id: py
+              with:
+                  python-version: ${{ matrix.python-version }}
+                  cache: 'pip'
+
+            - name: Install dependencies
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  echo ::group::Creating virtualenv...
+                  export PIP_DISABLE_PIP_VERSION_CHECK=1
+                  ${{ steps.py.outputs.python-path }} -m venv .pytest-venv
+                  source .pytest-venv/bin/activate
+                  echo ::endgroup::
+
+                  echo ::group::Installing project dependencies...
+                  pip install -e '.[tests]'
+                  echo ::endgroup::
+
+            - name: Unit tests
+              shell: bash
+              run: |
+                  source .pytest-venv/bin/activate
+                  pytest -v -Werror

@@ -1,0 +1,305 @@
+"""
+Generic (i.e. format-independent) logic for describing individual
+files and merging descriptions of individual files into descriptions
+of classes of files.
+"""
+
+# Note: this file cannot reference the format-specific description
+# modules at all, as this would create a circular dependency, which
+# Python's import machinery cannot handle.  Anything that needs to
+# know about those modules, needs to be either _in_ those modules,
+# or in describe/__init__.py.
+
+import dataclasses
+
+from collections import defaultdict
+from pathlib import Path
+import re
+from typing import Any, Collection
+
+from mast_transfer_tools.labels import Filetype, FilePattern
+
+@dataclasses.dataclass
+class FileDescription:
+    #: Pathnames of files described by this group.
+    fn: list[Path] = dataclasses.field(default_factory=list)
+
+    #: An identifier for the format of the file group's contents
+    #: (after uncompressing it if necessary).  Usually corresponds
+    #: to the files' canonical extension after removing compression
+    #: suffixes.  Always all lowercase ASCII.  None if the format
+    #: couldn't be identified for some reason.
+    standard: str | None = None
+
+    #: For files where we understand the contents, a list of
+    #: descriptions for the objects within files in this group.
+    #: The structure of these objects depends on what standard
+    #: describes the file as a whole.
+    #:
+    #: None in this field means we don't understand the contents of
+    #: this group of files.  This is different from an empty list,
+    #: which means files in this group are expected to have zero
+    #: objects in them, whatever that implies for this type of file.
+    objects: list[dict[str, Any]] | None = None
+
+    #: Errors encountered while trying to analyze files in this group.
+    #: If there were no errors, the list will be empty.
+    errors: list[str] = dataclasses.field(default_factory=list)
+
+    #: Warnings encountered while trying to analyze files in this group.
+    #: If there were no warnings, the list will be empty.
+    warnings: list[Warning] = dataclasses.field(default_factory=list)
+
+    def to_filetype(self, tag: str, top: Path) -> Filetype:
+        lpath = f"/filetypes/{tag}"
+
+        if self.objects is not None:
+            raise NotImplementedError("filetype with objects")
+
+        # TODO: merge regexes
+        filename = [
+            FilePattern(
+                lpath = f"{lpath}/filenames/{i}",
+                pattern = re.compile(re.escape(str(fn.relative_to(top)))),
+                include = True
+            )
+            for i, fn in enumerate(self.fn)
+        ]
+
+        return Filetype(
+            lpath = lpath,
+            filename = filename,
+            standard = self.standard,
+        )
+
+
+def sanitize_object_description(obj: dict) -> dict:
+    for k in ("group_id", "stem"):
+        obj.pop(k, "")
+    if "schema" in obj:
+        obj["schema"] = list(obj["schema"].values())
+        for c in obj["schema"]:
+            for k in ("group_id", "stem"):
+                c.pop(k, "")
+    return obj
+
+
+def unify_obj_description(
+    existing: dict, new: dict
+) -> tuple[dict, list | None]:
+    unified = new.copy()
+    failures = []
+    unified_name, name_failures = unify_name(existing, new)
+    if name_failures is not None:
+        failures += name_failures
+    else:
+        unified |= unified_name
+    if existing is not None:
+        for k in ("ndim", "stem", "dtype", "objtype", "value", "value_regex"):
+            if new.get(k) != existing.get(k):
+                failures.append(
+                    f"mismatched {k}: {new.get(k)} vs. {existing.get(k)}"
+                )
+    if existing is not None and ("schema" in existing) != ("schema" in new):
+        failures.append("schema presence not consistent")
+    # we actually unify schema in a prior pass and insert them into the
+    # unified description after this -- all we care about here is ensuring
+    # that there actually _are_ schema to have unified, although it's unlikely
+    # there aren't -- would imply a binary table HDU in which some examples
+    # had an empty data section and some didn't
+    failures = None if len(failures) == 0 else "; ".join(failures)
+    return unified, failures
+
+
+def unify_name(existing: dict, new: dict) -> tuple[dict, str | None]:
+    if (stem := new.get("stem")) is not None:
+        if existing is not None and existing.get("stem") != stem:
+            return {}, "mismatched repeated stem"
+        return {"repeated": True, "name": rf"{stem}((?:_|\d)*\d+)"}, None
+    elif existing is not None and existing["name"] != new["name"]:
+        namechars = []
+        minlen = min(len(existing["name"]), len(new["name"]))
+        maxlen = max(len(existing["name"]), len(new["name"]))
+        for i in range(minlen):
+            if existing["name"][i] != new["name"][i]:
+                namechars.append(".")
+            else:
+                namechars.append(existing["name"][i])
+        for i in range(maxlen - minlen):
+            namechars.append(".?")
+        return {"name": "".join(namechars)}, None
+    return {"name": new["name"]}, None
+
+
+def unify_column(existing: dict, new: dict) -> tuple[dict, list | None]:
+    unified = new.copy()
+    failures = []
+    unified_name, name_failures = unify_name(existing, new)
+    if name_failures is not None:
+        failures += name_failures
+    else:
+        unified |= unified_name
+    for k in ("ndim", "dtype"):
+        if new.get(k) != existing.get(k):
+            failures.append(
+                f"mismatched {k}: {new.get(k)} vs. {existing.get(k)}"
+            )
+    return unified, failures
+
+
+def unify_schema(existing: dict, new: list[dict]) -> tuple[dict, str | None]:
+    if existing is not None:
+        if set(existing.keys()) != set(c["group_id"] for c in new):
+            return {}, "incompatible group count"
+        unified = existing
+    else:
+        unified = {}
+    failures = []
+    for col in new:
+        if col["group_id"] not in unified:
+            unified[col["group_id"]] = col
+        else:
+            unified[col["group_id"]], col_failures = unify_column(
+                unified[col["group_id"]], col
+            )
+            failures += [f"{col['group_id']}: {f}" for f in col_failures]
+    failures = None if len(failures) == 0 else "; ".join(failures)
+    return unified, failures
+
+
+def _n_unique_groups(files: list[list[dict]]) -> int:
+    lengths = set()
+    for file in files:
+        lengths.add(len(set(r["group_id"] for r in file)))
+    return len(lengths)
+
+
+GROUPPAT = re.compile(r"(.*?)((?:_|\d)*\d+)$")
+
+
+def assign_ordered_stemgroups(
+    hdul: list[dict],
+    stems: Collection[str]
+) -> tuple[list[dict], dict[str, int], str | None]:
+    ix, active_stem = -1, None
+    stemgroups = {}
+    for hdu in hdul:
+        if m := GROUPPAT.match(hdu["name"]):
+            matches = [s for s in stems if s == m.group(1)]
+        else:
+            matches = []
+        if len(matches) > 1:
+            return hdul, stemgroups, "redundant stems"
+        elif len(matches) == 1:
+            if active_stem is None and matches[0] in stemgroups:
+                return hdul, stemgroups, "repeated group"
+            if matches[0] != active_stem:
+                ix += 1
+                stemgroups[active_stem] = ix
+            active_stem = matches[0]
+            hdu["stem"] = active_stem
+        else:
+            active_stem = None
+            ix += 1
+        hdu["group_id"] = ix
+    return hdul, stemgroups, None
+
+
+def chunk_repeated_ordered_objects(
+    objlists: list[list[dict]]
+) -> tuple[list[list[dict]], str | None]:
+    """
+    Find groups of 'repeated' ordered objects (HDUs or columns)
+    shared among all HDU lists or schema described
+    in objlists. Limited to finding 'repetitions' defined by variable
+    numeric / underscore patterns suffixed to some stem, consistently
+    ordered with respect to other HDUs / columns across objlists.
+    """
+    if _n_unique_groups(objlists) < 2:
+        return objlists, None
+    # check to see if anything might require
+    # grouping
+    shared = set(obj.get("name") for obj in objlists[0])
+    unshared = set()
+    for objlist in objlists[1:]:
+        names = set(obj.get("name") for obj in objlist)
+        unshared = unshared.union(shared.symmetric_difference(names))
+        shared = shared.intersection(names)
+    stems = set()
+    for u in unshared:
+        if m := GROUPPAT.match(u):
+            stems.add(m.group(1))
+    if not stems:
+        return objlists, None
+    old_stemgroups = None
+    for i, objlist in enumerate(objlists):
+        _, stemgroups, failure = assign_ordered_stemgroups(objlist, stems)
+        if failure is not None:
+            return objlists, f"failed grouping on {i}: {failure}"
+        if old_stemgroups is not None and old_stemgroups != stemgroups:
+            return objlists, f"failed grouping on {i}: inconsistent position"
+        old_stemgroups = stemgroups
+        objlists[i] = objlist
+    return objlists, None
+
+
+def unify_object_lists(
+    objlists: list[list[dict]]
+) -> tuple[dict | None, str | None]:
+    schemata_by_group = defaultdict(list)
+    for objlist in objlists:
+        for obj in objlist:
+            if "schema" not in obj:
+                continue
+            for i, col in enumerate(obj["schema"]):
+                obj["schema"][i] = col | {"group_id": i}
+            schemata_by_group[obj["group_id"]].append(obj["schema"])
+    unified_schemata = {}
+    # first pass: unify schemata
+    for gix, schemata in schemata_by_group.items():
+        # yes, this is ugly; we rely on indirectly mutating the schemata
+        # inplace
+        schemata, failure = chunk_repeated_ordered_objects(schemata)
+        if failure is not None:
+            return None, failure
+        for hix, schema in enumerate(schemata):
+            unified_schemata[gix], failure = unify_schema(
+                unified_schemata.get(gix), schema
+            )
+            if failure is not None:
+                return None, f"failed on schema {gix} example {hix}: {failure}"
+    # second pass: unify everything else
+    unified = {}
+    for i, objlist in enumerate(objlists):
+        for j, obj in enumerate(objlist):
+            unified[obj["group_id"]], failure = unify_obj_description(
+                unified.get(obj["group_id"]), obj
+            )
+            if failure is not None:
+                return (
+                    None,
+                    f"failed on file {i} obj {j} / {obj['name']}: {failure}",
+                )
+    for gix, schema in unified_schemata.items():
+        unified[gix]["schema"] = schema
+    return unified, None
+
+
+def unify_descriptions(descs: list[FileDescription]) -> list[FileDescription]:
+    stds: dict[str, FileDescription] = defaultdict(FileDescription)
+    for desc in descs:
+        cluster = stds[desc.standard]
+        if cluster.standard is None:
+            cluster.standard = desc.standard
+        else:
+            assert cluster.standard == desc.standard
+
+        if desc.objects is not None:
+            cluster.errors.append(
+                f"{desc.fn!r}: files of type {desc.standard!r}"
+                " should not have an objects list"
+            )
+
+        cluster.fn.extend(desc.fn)
+
+    return list(stds.values())

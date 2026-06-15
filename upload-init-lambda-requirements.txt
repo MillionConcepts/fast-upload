@@ -1,0 +1,6 @@
+botocore>1.40.0
+cytoolz
+dustgoggles
+hostess[aws]
+lz4
+pyyaml

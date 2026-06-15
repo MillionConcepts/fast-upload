@@ -1,0 +1,28 @@
+# syntax=docker/dockerfile:1
+
+# official python image w/minimal debian deps
+FROM python:3.14.2-slim-trixie
+
+# curl & jq are simply to report container metadata on entry
+RUN apt-get update && apt-get install -y curl jq && rm -rf /var/lib/apt/lists/*
+
+# 3rd-party dependencies
+COPY valpipe-requirements.txt requirements.txt
+RUN pip install --upgrade pip --root-user-action ignore
+RUN pip install -r requirements.txt --root-user-action ignore
+
+# actually install the library
+COPY pyproject.toml .
+COPY mast_transfer_tools mast_transfer_tools
+RUN pip install . --root-user-action ignore
+
+# make print statements actually log without explicit stdout flushes (usually)
+ENV PYTHONUNBUFFERED=1
+
+# set up container entrypoint
+COPY valpipe_entrypoint.sh .
+RUN chmod +x valpipe_entrypoint.sh
+ENTRYPOINT ["./valpipe_entrypoint.sh"]
+
+# validation pipeline handler script called by valpipe_entrypoint.sh
+COPY pipe_entry.py .

@@ -1,0 +1,14 @@
+asdf
+asdf-astropy
+astropy
+botocore
+cytoolz
+dustgoggles
+hostess[aws]
+lz4
+numpy
+pandas
+pyyaml
+roman-datamodels
+s3fs
+setuptools>=40.8.0
