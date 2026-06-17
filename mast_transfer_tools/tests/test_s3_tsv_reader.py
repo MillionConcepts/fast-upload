@@ -68,8 +68,8 @@ def test_update_consumes_new_tsv_chunk():
         columns=["a", "b"],
     )
 
-    pd.testing.assert_frame_equal(reader.log, expected)
-    pd.testing.assert_frame_equal(reader.last_log, expected)
+    assert (reader.last_log == expected).all(axis=None)
+    assert (reader.log == expected).all(axis=None)
 
 
 def test_update_coalesces_multiple_chunks_available_at_once():
@@ -87,8 +87,8 @@ def test_update_coalesces_multiple_chunks_available_at_once():
         columns=["a", "b"],
     )
 
-    pd.testing.assert_frame_equal(reader.last_log, expected)
-    pd.testing.assert_frame_equal(reader.log, expected)
+    assert (reader.last_log == expected).all(axis=None)
+    assert (reader.log == expected).all(axis=None)
 
 
 def test_update_accepts_single_write_containing_multiple_rows():
@@ -105,8 +105,8 @@ def test_update_accepts_single_write_containing_multiple_rows():
         columns=["a", "b"],
     )
 
-    pd.testing.assert_frame_equal(reader.last_log, expected)
-    pd.testing.assert_frame_equal(reader.log, expected)
+    assert (reader.last_log == expected).all(axis=None)
+    assert (reader.log == expected).all(axis=None)
 
 
 def test_too_few_columns_are_rejected():
