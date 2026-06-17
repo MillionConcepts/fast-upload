@@ -95,11 +95,15 @@ class ValidationState:
         self.transfer_timeout = transfer_timeout
         self.missing_timeout = missing_timeout
         self.max_failures = max_failures
-        self.n_expected_files = len(index)
+        self.n_expected_files = len(index.loc[index['will_transfer']])
         self.n_completed = 0
         self.n_failures = 0
         self.last_time = time.time()
         self.reader = reader
+
+    @property
+    def done(self) -> bool:
+        return self.n_expected_files == self.n_completed
 
     def _check_timeout(self):
         """
@@ -141,13 +145,10 @@ class ValidationState:
         stoprows = self.last_log.loc[self.last_log["category"] == "stop"]
         if len(stoprows) > 1:
             raise LogFormatError("Too many stoprows")
-        # TODO: need some logic related to previous client state
         if (
             len(shutrows) > 0
             and shutrows["status"].isin(("error", "failure")).any()
         ):
-            # TODO: not sure this is right yet. but ideally we should have
-            #  the client do this _on purpose_.
             self.client_status = "crashed"
             return True, True
         elif len(stoprows) == 1:
@@ -216,7 +217,6 @@ class ValidationState:
             are_new_messages = self.reader.update()
         except Exception as ex:
             self.client_status = "invalid"
-            # TODO: this should be logged, not raise an exception
             raise LogFormatError(str(ex))
         if not are_new_messages:
             self._check_timeout()
@@ -224,10 +224,8 @@ class ValidationState:
         self.client_missing, self.client_absent = False, False
         if self.client_status not in TERMINAL_CLIENT_STATES:
             self.client_status = "working"
-        # TODO: check for restart
         if (self.last_log["category"] == "keepalive").all():
             if self.client_status in ("quit", "crashed", "done"):
-                # TODO: we'll want a little more logic for this.
                 raise BadConditionError(self.client_status)
             return False, False, False, []
         # a timeout _shouldn't_ happen here -- it would imply that _we_ have

@@ -34,6 +34,7 @@ from mast_transfer_tools.tests.test_label_parsing import MINIMAL_LABEL_YAML
 DATASET = "empty"
 DELIVERY_ID = "0"
 TRANSFER_TYPE = "staging"
+CONFIG_BUCKET = "config-bucket"
 CONTROL_BUCKET = "control-bucket"
 TRANSFER_BUCKET = "transfer-bucket"
 AGENT_ID = "validator-agent"
@@ -51,6 +52,7 @@ DEFAULT_VAL_SETTINGS = {
 
 
 DEFAULT_IDENTIFIERS = {
+    "confb_name": CONFIG_BUCKET,
     "cb_name": CONTROL_BUCKET,
     "tb_name": TRANSFER_BUCKET,
     "dataset": DATASET,
@@ -115,6 +117,24 @@ def bucket_factory_for(registry: FakeBucketRegistry):
     return bucket_factory
 
 
+class FakeSQSClient:
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def send_message(self, *, QueueUrl, MessageBody):
+        if not isinstance(QueueUrl, str):
+            raise TypeError("QueueUrl must be a string")
+        if not isinstance(MessageBody, str):
+            raise TypeError("MessageBody must be a string")
+
+
+def make_fake_boto_client(name, **_):
+    if name == "sqs":
+        return FakeSQSClient()
+    return object()
+
+
 def install_validation_server_fakes(
     monkeypatch: pytest.MonkeyPatch,
     registry: FakeBucketRegistry,
@@ -126,7 +146,7 @@ def install_validation_server_fakes(
     monkeypatch.setattr(validation_core_mod, "S3TSVReader", MockS3TSVReader)
     monkeypatch.setattr(validation_core_mod, "S3TSVWriter", MockS3TSVWriter)
     monkeypatch.setattr(
-        validation_core_mod, "make_boto_client", lambda *_a, **_kw: object()
+        validation_core_mod, "make_boto_client", make_fake_boto_client
     )
     monkeypatch.setattr(
         validation_core_mod.time, "sleep", lambda *_a, **_kw: None

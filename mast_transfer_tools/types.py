@@ -11,9 +11,8 @@ from .labels import Label
 
 
 YAMLString = str
-
-
 """alias for strings that can be parsed as valid YAML"""
+
 TransferType = Literal["staging", "sample"]
 TransferEntity = Literal["validator", "client", "lambda"]
 
@@ -54,9 +53,9 @@ class ValPipeSettings(TypedDict):
 
 
 class ValIdent(TypedDict):
+    confb_name: str
     cb_name: str
     tb_name: str
-    sb_name: str | None
     dataset: str
     delivery_id: str
     transfer_type: TransferType
@@ -77,3 +76,29 @@ class PipelineNetworkConfig(TypedDict):
     INIT_LAMBDA_ARN: str
     LOCK_STALENESS_THRESHOLD: int
     TASK_CONFIG_PREFIX: str
+
+
+ValidationStatus = Literal["success", "failure", "incomplete"]
+
+
+class ValidationDetails(TypedDict):
+    files_validated: int
+    files_expected: int
+    files_failed: int
+    errors: dict[str, str]  # filename: file error(s)
+
+
+class ValidationSQSReport(TypedDict):
+    """
+    Format for SQS message sent by validation pipeline on exit
+    (assuming successful init). Formatted as JSON in actual message.
+    """
+    dataset: str
+    delivery_id: str
+    completed_at: str
+    transfer_type: TransferType
+    label_path: str
+    details: ValidationDetails
+    validation_result: ValidationStatus
+    pipeline_exception: str  # "None" if no exception
+

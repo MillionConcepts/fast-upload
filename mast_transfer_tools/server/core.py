@@ -7,6 +7,7 @@ in validation, for local alternatives.
 """
 
 import concurrent.futures
+import datetime as dt
 import difflib
 import json
 from concurrent.futures import ThreadPoolExecutor
@@ -39,7 +40,7 @@ from mast_transfer_tools.types import (
     TransferType,
     ValPipeSettings,
     ValIdent,
-    PipelineNetworkConfig,
+    PipelineNetworkConfig, ValidationStatus, ValidationSQSReport,
 )
 from mast_transfer_tools.errors import (
     InvalidFileIndexError,
@@ -420,6 +421,7 @@ class ValidationSession:
         self.identifiers, self.settings = identifiers, settings
         self.pipe_future: StoppableFuture | None = None
         self._pipe_exec = ThreadPoolExecutor(1)
+        self.errors = {}
 
     @property
     def running(self):
@@ -465,6 +467,7 @@ class ValidationSession:
                 bucket_name_stem, dataset, delivery_id, transfer_type
             )
         kw["identifiers"]: ValIdent = {
+            "confb_name": confb_name,
             "cb_name": cb_name,
             "tb_name": tb_name,
             "dataset": dataset,
@@ -796,6 +799,7 @@ class ValidationSession:
                 self.vstate.n_completed += 1
                 if r["status"] != "ok":
                     self.vstate.n_failures += 1
+                    self.errors[k] = fields["message"]
             if self.logger.elapsed() > self.keepalive_threshold:
                 self.logger.write(
                     category="keepalive",
@@ -829,6 +833,42 @@ class ValidationSession:
                 "client status": self.vstate.client_status
             }
         )
+
+    @staticmethod
+    def _send_sqs_report(report: ValidationSQSReport):
+        sqs = make_boto_client('sqs', verify=False)
+        sqs.send_message(
+            QueueUrl=conf.VAL_PIPE_SQS_QUEUE_URL,
+            MessageBody=json.dumps(report)
+        )
+
+    def _format_sqs_report(self) -> ValidationSQSReport:
+        msg = {}
+        msg["dataset"] = self.identifiers["dataset"]
+        msg["delivery_id"] = self.identifiers["delivery_id"]
+        msg["completed_at"] = dt.datetime.now(tz=dt.timezone.utc).isoformat()
+        msg["transfer_type"] = self.identifiers["transfer_type"]
+        msg["label_path"] = (
+            f"s3://{self.identifiers['confb_name']}/"
+            f"{names.label_key(self.identifiers['dataset'], self.identifiers['delivery_id'])}"
+        )
+        msg["details"] = {
+            "files_validated": self.vstate.n_completed,
+            "files_expected": self.vstate.n_expected_files,
+            "total_failures": self.vstate.n_failures,
+            "errors": self.errors
+        }
+        if self.exception is not None:
+            msg["pipeline_exception"] = str(exc_report(self.exception))
+        else:
+            msg["pipeline_exception"] = "None"
+        if not self.vstate.done:
+            msg["validation_result"] = "incomplete"
+        elif len(self.errors) > 0:
+            msg["validation_result"] = "failure"
+        else:
+            msg["validation_result"] = "success"
+        return msg
 
     def _log_termination(self):
         """
@@ -895,6 +935,8 @@ class ValidationSession:
                 self._log_termination()
             else:
                 self._log_exit()
+            sqs_message = self._format_sqs_report()
+            self._send_sqs_report(sqs_message)
         except BaseException as ex:
             self._log_crash(ex)
             self.exception = ex

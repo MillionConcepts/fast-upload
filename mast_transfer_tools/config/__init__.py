@@ -22,7 +22,7 @@ VAL_PIPE_SETTINGS = {
     "log_poll_rate": 1,
     "transfer_timeout": 480,
     "missing_timeout": 240,
-    "loop_rate": 0.05
+    "loop_rate": 0.05,
 }
 
 COGCONFIG = CognitoConfiguration(
@@ -39,3 +39,5 @@ LAMBDA_CLIENT_CONFIG = botocore.config.Config(
     read_timeout=300,
     connect_timeout=10
 )
+
+VAL_PIPE_SQS_QUEUE_URL = "mast-fast-data-validation"
