@@ -13,7 +13,7 @@ staff at MAST itself, you will probably not have any use for this.
 This package will be installable from PyPi in the near future. At present,
 install from source: clone the repo to your computer, create a virtual 
 environment if you wish, and run `pip install .` from repo root. Python >= 
-3.13 is required (>= 3.11 support pending shortly).
+3.11 is required.
 
 ## Usage
 
