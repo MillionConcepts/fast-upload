@@ -1,6 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
 import csv
 import threading
+from _thread import LockType
 import time
 from io import StringIO
 from itertools import chain
@@ -35,7 +36,7 @@ class S3TSVWriter:
         safe: bool = True,
         add_timestamps: bool = True,
         buftime: float = 0.5,
-        shared_lock: threading.Lock | None = None,
+        shared_lock: LockType | None = None,
         buf_poll_rate: float = 0.08
     ):
         self.fields = tuple(f["name"] for f in fields)
