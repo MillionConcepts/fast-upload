@@ -84,14 +84,17 @@ ValidationStatus = Literal["success", "failure", "incomplete"]
 class ValidationDetails(TypedDict):
     files_validated: int
     files_expected: int
-    files_failed: int
-    errors: dict[str, str]  # filename: file error(s)
+    # note that this can include transfer failures that later succeed due to
+    # e.g. transient network errors
+    total_failures: int
+    # filename: file error(s)
+    errors: dict[str, str]
 
 
 class ValidationSQSReport(TypedDict):
     """
     Format for SQS message sent by validation pipeline on exit
-    (assuming successful init). Formatted as JSON in actual message.
+    (assuming successful init). Dumped to JSON in actual message.
     """
     dataset: str
     delivery_id: str
