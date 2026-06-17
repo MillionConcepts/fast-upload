@@ -83,7 +83,6 @@ def read_task_config(
                 # validation task config exists but is malformatted.
                 # treat this as a failure: we don't know what to do.
                 return None, iconfig_err_response(ex)
-            break
     if len(configs) == 0:
         # even the default validation task config is not present, so we don't
         # have any idea where to run things! hard error.
