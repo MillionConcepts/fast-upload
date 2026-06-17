@@ -57,7 +57,7 @@ def test_recognition_match_uncompressed(
 
 @pytest.mark.parametrize(
     ("e1","e2"),
-    combinations(compressed_exts, 2)
+    tuple(combinations(compressed_exts, 2))
 )
 def test_recognition_mismatch_compressed(
     e1: str,
@@ -82,10 +82,10 @@ def test_recognition_mismatch_compressed(
 
 
 @pytest.mark.parametrize(
-    ("cext","uext"), product(
+    ("cext","uext"), tuple(product(
         compressed_exts,
         uncompressed_exts
-    )
+    ))
 )
 def test_recognition_mismatch_uncompressed(
     cext: str,
@@ -157,10 +157,10 @@ def test_open_for_read_uncompressed(
 
 
 @pytest.mark.parametrize(
-    ("uext","cext"), product(
+    ("uext","cext"), tuple(product(
         uncompressed_exts,
         ("",) + compression.SUPPORTED_COMPRESSION_EXTS
-    )
+    ))
 )
 def test_open_for_write_supported(
     uext: str,

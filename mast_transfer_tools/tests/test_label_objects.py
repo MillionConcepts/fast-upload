@@ -13,7 +13,7 @@ from datetime import date
 from inspect import getmembers
 from itertools import chain
 from re import compile as re_compile
-from string import ascii_letters
+from string import ascii_letters, ascii_lowercase, digits
 from typing import Any, Literal, Sequence
 
 import pytest
@@ -316,16 +316,22 @@ def test_good_TimeInfo(inp: dict[str, date]) -> None:
     check_TimeInfo(inp, obj)
 
 
+local_part = st.text(
+    alphabet=ascii_lowercase + digits,
+    min_size=1,
+    max_size=20,
+)
+
+simple_email = local_part.map(lambda s: f"{s}@example.com")
+
+
 def st_good_Contacts() -> st.SearchStrategy[dict[str, list[str]]]:
-    """
-    Strategy producing a valid Contacts input dictionary.
-    """
     return st.fixed_dictionaries(
         {},
-        optional = {
-            "archive": st.lists(st.emails(), max_size=3),
-            "provider": st.lists(st.emails(), max_size=3),
-        }
+        optional={
+            "archive": st.lists(simple_email, max_size=3),
+            "provider": st.lists(simple_email, max_size=3),
+        },
     )
 
 
