@@ -18,7 +18,7 @@ def upload(
     transfer_type: TransferType,
     file_index: pd.DataFrame,
     source: Path | Bucket
-):
+) -> None:
     import mast_transfer_tools.config as conf
 
     client = UploadClient(
@@ -27,7 +27,7 @@ def upload(
         transfer_type=transfer_type,
         file_index=file_index,
         source=source,
-        n_threads=2,
+        n_threads=4,
         lambda_client_config=conf.LAMBDA_CLIENT_CONFIG,
     )
 

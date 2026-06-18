@@ -13,7 +13,7 @@ from typing import Any, Callable, Mapping, Sequence
 import pandas as pd
 import pytest
 
-from mast_transfer_tools.tests.mock_buckets import FakeBucketRegistry
+from mast_transfer_tools.tests.mock_buckets import FakeBucketRegistry, FakeMutableBucket
 import mast_transfer_tools.upload.client as upload_client_mod
 from mast_transfer_tools.tests.mock_s3log import MockS3TSVReader, MockS3TSVWriter
 from mast_transfer_tools.upload.client import UploadClient
@@ -121,13 +121,16 @@ class FakeSSMClient:
     """
     Fake SSM client that only returns fixed network configuration parameters.
     """
-    def get_parameter(self, Name: str, WithDecryption: bool):
+
+    def get_parameter(
+        self, Name: str, WithDecryption: bool     # noqa: FBT001
+    ) -> dict[str, dict[str, str]]:
         if WithDecryption is not True:
             raise ValueError("WithDecryption munst be True")
         if Name != conf.NETWORK_CONFIG_PARAMETER:
             raise ValueError(
-                f"Name must be the configured value of "
-                f"NETWORK_CONFIG_PARAMETER"
+                "Name must be the configured value of "
+                "NETWORK_CONFIG_PARAMETER"
             )
         return {"Parameter": {"Value": json.dumps(NETCONF_PARAMS)}}
 
@@ -194,11 +197,11 @@ class UploadClientRig:
     bucket_factory: Callable[..., Any]
 
     @property
-    def control_bucket(self):
+    def control_bucket(self) -> FakeMutableBucket:
         return self.registry[CONTROL_BUCKET]
 
     @property
-    def transfer_bucket(self):
+    def transfer_bucket(self) -> FakeMutableBucket:
         return self.registry[TRANSFER_BUCKET]
 
     def connect(self) -> None:
@@ -244,7 +247,9 @@ class UploadClientRig:
         for future in self.client.futures:
             future.result(timeout=timeout)
 
-    def transfer_one_expected(self, expected_relpath: str):
+    def transfer_one_expected(
+        self, expected_relpath: str
+    ) -> upload_client_mod.ClientFile:
         file = self.client.transfer_next_file()
         assert file is not None
         assert file.relpath == expected_relpath
@@ -293,7 +298,9 @@ def make_source_tree(tmp_path: Path, files: Mapping[str, str]) -> Path:
 def bucket_factory_for(registry: FakeBucketRegistry) -> Callable[..., Any]:
     """Return the Bucket replacement used while UploadClient connects."""
 
-    def bucket_factory(bucket_name: str, *_args: Any, **_kwargs: Any):
+    def bucket_factory(
+        bucket_name: str, *_args: Any, **_kwargs: Any
+    ) -> FakeMutableBucket:
         return registry.get_or_make(bucket_name)
 
     return bucket_factory
@@ -373,8 +380,8 @@ def validator_log_text(*rows: tuple[str, str, str, str]) -> str:
 
 
 def test_upload_client_local_happy_path(
-    monkeypatch: pytest.MonkeyPatch, tmp_path
-):
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     """A small local-to-S3 transfer story with validator success."""
     rig = make_upload_client_rig(
         monkeypatch,
@@ -421,8 +428,8 @@ def test_upload_client_local_happy_path(
 
 
 def test_validator_success_before_transfer_marks_file_invalid(
-    monkeypatch: pytest.MonkeyPatch, tmp_path
-):
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     """Validator success for an untransferred file is protocol corruption."""
     rig = make_upload_client_rig(
         monkeypatch,
@@ -466,8 +473,8 @@ def test_validator_success_before_transfer_marks_file_invalid(
 
 
 def test_upload_client_resumes_interrupted_upload(
-    monkeypatch: pytest.MonkeyPatch, tmp_path
-):
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     """Resume from prior validator logs without reuploading valid objects."""
     registry = FakeBucketRegistry()
     control_bucket = registry.make(CONTROL_BUCKET)
@@ -559,8 +566,8 @@ def test_upload_client_resumes_interrupted_upload(
 
 
 def test_one_file_exhausts_retries_while_other_file_validates(
-    monkeypatch: pytest.MonkeyPatch, tmp_path
-):
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     """A failed upload can become complete by exhausting retries."""
     registry = FakeBucketRegistry()
     transfer_bucket = registry.make(TRANSFER_BUCKET)
@@ -649,8 +656,8 @@ def test_one_file_exhausts_retries_while_other_file_validates(
 
 
 def test_concurrent_transfer_scheduling_uploads_each_file_once(
-    monkeypatch: pytest.MonkeyPatch, tmp_path
-):
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     """Concurrent scheduling does not skip or duplicate manifest files."""
     n_files = 12
     n_threads = 4

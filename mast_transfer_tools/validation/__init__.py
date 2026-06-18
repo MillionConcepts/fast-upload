@@ -4,12 +4,9 @@ Validation of data files against their labels.
 from functools import cache
 from importlib import import_module
 from pathlib import Path
-from typing import Callable, TYPE_CHECKING, Any
+from typing import Callable, Any
 
-from asdf._asdf import AsdfFile
-from astropy.io.fits import HDUList
 from hostess.aws.s3 import Bucket
-from pyarrow.parquet import ParquetFile
 
 from mast_transfer_tools.labels import (
     Filetype, STANDARDS_SUPPORTING_DATA_VALIDATION
@@ -73,7 +70,12 @@ def object_checkers_for(
     return checkers
 
 
-def check_data(data: Any, ft: Filetype, object_check_hook: bool = True):
+def check_data(
+    data: Any,
+    ft: Filetype,
+    *,
+    object_check_hook: bool = True
+) -> dict[str, dict]:
     failures = {}
 
     for name, checker in object_checkers_for(

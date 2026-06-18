@@ -12,8 +12,7 @@ import yaml
 import mast_transfer_tools.config as conf
 import mast_transfer_tools.lambda_.core as lambda_core
 import mast_transfer_tools.utilz.name_reference as names
-from mast_transfer_tools.tests.mock_buckets import FakeBucketRegistry
-
+from mast_transfer_tools.tests.mock_buckets import FakeBucketRegistry, FakeMutableBucket
 
 DATASET = "dataset-one"
 DELIVERY_ID = "delivery-one"
@@ -111,11 +110,11 @@ class LambdaRig:
     ecs: FakeECSClient
 
     @property
-    def control_bucket(self):
+    def control_bucket(self) -> FakeMutableBucket:
         return self.registry[CONTROL_BUCKET]
 
     @property
-    def config_bucket(self):
+    def config_bucket(self) -> FakeMutableBucket:
         return self.registry[CONFIG_BUCKET]
 
 
@@ -171,7 +170,9 @@ def make_lambda_rig(
     if dataset_config is not None:
         put_task_config(rig, DATASET, dataset_config)
 
-    def bucket_factory(bucket_name: str, *_args: Any, **_kwargs: Any):
+    def bucket_factory(
+        bucket_name: str, *_args: Any, **_kwargs: Any
+    ) -> FakeMutableBucket:
         return registry.get_or_make(bucket_name)
 
     def fake_ls_tasks(
@@ -190,7 +191,7 @@ def make_lambda_rig(
     monkeypatch.setattr(lambda_core, "ls_tasks", fake_ls_tasks)
     monkeypatch.setattr(lambda_core, "ECSTask", FakeECSTask)
     monkeypatch.setattr(lambda_core.time, "sleep", lambda *_args: None)
-    monkeypatch.setattr(lambda_core.random, "randint", lambda *_args: 8675309)
+    monkeypatch.setattr(lambda_core.random, "randint", lambda *_args: 1234567)
 
     return rig
 
@@ -226,7 +227,7 @@ def assert_lambda_lock_was_written_and_removed(rig: LambdaRig) -> None:
 
 def test_lambda_launches_validation_task_and_cleans_lambda_lock(
     monkeypatch: pytest.MonkeyPatch,
-):
+) -> None:
     rig = make_lambda_rig(monkeypatch)
 
     response = response_from_lambda(lambda_core.main(event(), object()))
@@ -291,7 +292,7 @@ def test_lambda_cleans_lambda_lock_after_post_lock_failures(
     case: str,
     rig_kwargs: dict[str, Any],
     expected_step: str,
-):
+) -> None:
     rig = make_lambda_rig(monkeypatch, **rig_kwargs)
 
     response = response_from_lambda(lambda_core.main(event(), object()))
@@ -303,7 +304,7 @@ def test_lambda_cleans_lambda_lock_after_post_lock_failures(
 
 def test_lambda_refuses_to_launch_when_validation_task_is_already_running(
     monkeypatch: pytest.MonkeyPatch,
-):
+) -> None:
     rig = make_lambda_rig(
         monkeypatch,
         running_tasks=[
@@ -327,7 +328,7 @@ def test_lambda_refuses_to_launch_when_validation_task_is_already_running(
 
 def test_dataset_task_config_overrides_default_task_config(
     monkeypatch: pytest.MonkeyPatch,
-):
+) -> None:
     rig = make_lambda_rig(
         monkeypatch,
         dataset_config={

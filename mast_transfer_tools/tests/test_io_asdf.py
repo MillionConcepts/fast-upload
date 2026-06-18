@@ -4,6 +4,7 @@ extension" knob?
 """
 
 from io import BytesIO
+from pathlib import Path
 
 import asdf
 from asdf.tags.core import ExtensionMetadata, Software
@@ -45,7 +46,7 @@ def _asdf_with_missing_extension() -> BytesIO:
 
 
 def test_asdfopen_generic_fails_for_missing_declared_extension(
-    tmp_path,
+    tmp_path: Path,
 ) -> None:
     path = tmp_path / "missing-extension.asdf"
     path.write_bytes(_asdf_with_missing_extension().getvalue())

@@ -7,6 +7,7 @@ They just attempt to look for some likely ASDF-specific badness.
 
 import io
 import re
+from typing import Any
 
 import asdf
 import numpy as np
@@ -44,7 +45,7 @@ def make_asdf_object(
     name_regex: bool = False,
     repeated: bool = False,
     optional: bool = False,
-    value=None,
+    value: Any = None,
     value_regex: bool = False,
     lpath: str = "/",
 ) -> labels.ASDFDataObject:

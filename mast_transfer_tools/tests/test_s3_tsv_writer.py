@@ -3,7 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 from io import StringIO
 import csv
 import time
-from typing import Literal
+from typing import Literal, Any
 
 import pytest
 
@@ -14,11 +14,13 @@ from mast_transfer_tools.tests.mock_buckets import MockBucket
 
 class MockAppendingBucket(MockBucket):
     """fake S3 bucket for testing S3TSVWriter's append-writes."""
-    def __init__(self):
+    def __init__(self) -> None:
         self.objects = defaultdict(str)
         self.appends = []
 
-    def append(self, text: str, key: str, literal_str: Literal[True] = True):
+    def append(
+        self, text: str, key: str, literal_str: Literal[True] = True  # noqa: FBT002
+    ) -> None:
         assert literal_str is True
         self.appends.append((key, text))
         self.objects[key] += text
@@ -26,7 +28,7 @@ class MockAppendingBucket(MockBucket):
 
 def wait_for_rows(
     bucket: MockAppendingBucket, key: str, n: int, timeout: float = 1
-):
+) -> None:
     deadline = time.time() + timeout
     while time.time() < deadline:
         rows = list(
@@ -40,7 +42,7 @@ def wait_for_rows(
     )
 
 
-def test_eventually_appends_one_row():
+def test_eventually_appends_one_row() -> None:
     bucket = MockAppendingBucket()
     fields: list[LogFieldRec] = [
         {"name": "time", "required": False},
@@ -51,7 +53,7 @@ def test_eventually_appends_one_row():
     w = S3TSVWriter(
         bucket,
         "log.tsv",
-        fields,
+        fields=fields,
         buftime=0.01,
         buf_poll_rate=0.001,
         add_timestamps=False,
@@ -66,7 +68,7 @@ def test_eventually_appends_one_row():
         w.stop()
 
 
-def test_bursty_writes_are_batched():
+def test_bursty_writes_are_batched() -> None:
     bucket = MockAppendingBucket()
     fields: list[LogFieldRec] = [
         {"name": "time", "required": False},
@@ -76,7 +78,7 @@ def test_bursty_writes_are_batched():
     w = S3TSVWriter(
         bucket,
         "log.tsv",
-        fields,
+        fields=fields,
         buftime=0.05,
         buf_poll_rate=0.001,
         add_timestamps=False,
@@ -94,7 +96,7 @@ def test_bursty_writes_are_batched():
         w.stop()
 
 
-def test_fixed_fields_are_added_and_protected():
+def test_fixed_fields_are_added_and_protected() -> None:
     bucket = MockAppendingBucket()
     fields: list[LogFieldRec] = [
         {"name": "time", "required": False},
@@ -105,7 +107,7 @@ def test_fixed_fields_are_added_and_protected():
     w = S3TSVWriter(
         bucket,
         "log.tsv",
-        fields,
+        fields=fields,
         fixed={"host": "machine-a"},
         buftime=0.01,
         buf_poll_rate=0.001,
@@ -123,7 +125,7 @@ def test_fixed_fields_are_added_and_protected():
         w.stop()
 
 
-def test_stop_drains_pending_buffer():
+def test_stop_drains_pending_buffer() -> None:
     bucket = MockAppendingBucket()
     fields: list[LogFieldRec] = [
         {"name": "time", "required": False},
@@ -133,7 +135,7 @@ def test_stop_drains_pending_buffer():
     w = S3TSVWriter(
         bucket,
         "log.tsv",
-        fields,
+        fields=fields,
         buftime=0.02,
         buf_poll_rate=0.001,
         add_timestamps=False,
@@ -149,7 +151,7 @@ def test_stop_drains_pending_buffer():
     assert rows == [["t0", "final"]]
 
 
-def test_concurrent_writes_are_all_present_once():
+def test_concurrent_writes_are_all_present_once() -> None:
     bucket = MockAppendingBucket()
     fields: list[LogFieldRec] = [
         {"name": "time", "required": False},
@@ -160,7 +162,7 @@ def test_concurrent_writes_are_all_present_once():
     w = S3TSVWriter(
         bucket,
         "log.tsv",
-        fields,
+        fields=fields,
         buftime=0.01,
         buf_poll_rate=0.001,
         add_timestamps=False,
@@ -169,7 +171,7 @@ def test_concurrent_writes_are_all_present_once():
     n = 100
 
     try:
-        def submit(i):
+        def submit(i: Any) -> None:
             w.write(time="t", event="hit", seq=str(i))
 
         with ThreadPoolExecutor(max_workers=8) as ex:

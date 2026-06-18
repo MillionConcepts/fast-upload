@@ -1,3 +1,5 @@
+from typing import MutableSequence
+
 import pandas as pd
 import pytest
 
@@ -8,23 +10,25 @@ from mast_transfer_tools.tests.mock_buckets import MockBucket
 
 
 class FakeFuture:
-    def __init__(self):
+    def __init__(self) -> None:
         self.stopped = False
         self.stop_calls = 0
 
-    def stop(self):
+    def stop(self) -> None:
         self.stopped = True
         self.stop_calls += 1
 
 
 class MockTailingBucket(MockBucket):
     """Fake S3 bucket for testing S3TSVReader's tailing behavior."""
-    def __init__(self):
+    def __init__(self) -> None:
         self.tail_args = None
         self.tail_queue = None
         self.future = FakeFuture()
 
-    def tail(self, key, queue, *, permit_missing):
+    def tail(
+        self, key: str, queue: MutableSequence, *, permit_missing: bool
+    ) -> FakeFuture:
         self.tail_args = {
             "key": key,
             "permit_missing": permit_missing,
@@ -32,7 +36,7 @@ class MockTailingBucket(MockBucket):
         self.tail_queue = queue
         return self.future
 
-    def push(self, text):
+    def push(self, text: str) -> None:
         self.tail_queue.append(text)
 
 
@@ -41,7 +45,7 @@ TEST_FIELDSPEC: list[LogFieldRec] = [
 ]
 
 
-def test_update_without_new_text_does_nothing():
+def test_update_without_new_text_does_nothing() -> None:
     bucket = MockTailingBucket()
     reader = S3TSVReader(bucket, "x", TEST_FIELDSPEC)
     reader.start()
@@ -54,7 +58,7 @@ def test_update_without_new_text_does_nothing():
     pd.testing.assert_frame_equal(reader.last_log, before_last)
 
 
-def test_update_consumes_new_tsv_chunk():
+def test_update_consumes_new_tsv_chunk() -> None:
     bucket = MockTailingBucket()
     reader = S3TSVReader(bucket, "x", TEST_FIELDSPEC)
     reader.start()
@@ -72,7 +76,7 @@ def test_update_consumes_new_tsv_chunk():
     assert (reader.log == expected).all(axis=None)
 
 
-def test_update_coalesces_multiple_chunks_available_at_once():
+def test_update_coalesces_multiple_chunks_available_at_once() -> None:
     bucket = MockTailingBucket()
     reader = S3TSVReader(bucket, "x", TEST_FIELDSPEC)
     reader.start()
@@ -91,7 +95,7 @@ def test_update_coalesces_multiple_chunks_available_at_once():
     assert (reader.log == expected).all(axis=None)
 
 
-def test_update_accepts_single_write_containing_multiple_rows():
+def test_update_accepts_single_write_containing_multiple_rows() -> None:
     bucket = MockTailingBucket()
     reader = S3TSVReader(bucket, "x", TEST_FIELDSPEC)
     reader.start()
@@ -109,7 +113,7 @@ def test_update_accepts_single_write_containing_multiple_rows():
     assert (reader.log == expected).all(axis=None)
 
 
-def test_too_few_columns_are_rejected():
+def test_too_few_columns_are_rejected() -> None:
     bucket = MockTailingBucket()
     reader = S3TSVReader(bucket, "x", TEST_FIELDSPEC)
     reader.start()
@@ -120,7 +124,7 @@ def test_too_few_columns_are_rejected():
         reader.update()
 
 
-def test_too_many_columns_are_rejected():
+def test_too_many_columns_are_rejected() -> None:
     bucket = MockTailingBucket()
     reader = S3TSVReader(bucket, "x", TEST_FIELDSPEC)
     reader.start()
@@ -131,7 +135,7 @@ def test_too_many_columns_are_rejected():
         reader.update()
 
 
-def test_batch_with_one_bad_row_is_rejected():
+def test_batch_with_one_bad_row_is_rejected() -> None:
     bucket = MockTailingBucket()
     reader = S3TSVReader(bucket, "x", LOG_FIELD_SPEC)
     reader.start()
@@ -145,7 +149,7 @@ def test_batch_with_one_bad_row_is_rejected():
         reader.update()
 
 
-def test_stop_stops_future_without_draining_pending_log_text():
+def test_stop_stops_future_without_draining_pending_log_text() -> None:
     bucket = MockTailingBucket()
     reader = S3TSVReader(
         bucket,
@@ -175,7 +179,7 @@ def test_stop_stops_future_without_draining_pending_log_text():
     assert reader.last_log.empty
 
 
-def test_stop_before_start_is_noop():
+def test_stop_before_start_is_noop() -> None:
     bucket = MockTailingBucket()
     reader = S3TSVReader(
         bucket,

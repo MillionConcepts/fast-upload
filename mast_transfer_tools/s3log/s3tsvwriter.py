@@ -31,6 +31,7 @@ class S3TSVWriter:
         self,
         bucket: Bucket,
         key: str,
+        *,
         fields: Sequence[LogFieldRec],
         fixed: Mapping[str, str] | None = None,
         safe: bool = True,

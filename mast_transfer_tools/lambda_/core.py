@@ -97,7 +97,6 @@ class _CleanupDict(TypedDict):
     exid: int | None
 
 
-# TODO: pull these two functions up
 def encode_kwargs(**kwargs):
     kwarg_json = json.dumps(kwargs)
     kwarg_gzip = gzip.compress(kwarg_json.encode("utf-8"))

@@ -1,4 +1,3 @@
-from collections import defaultdict
 import datetime as dt
 from numbers import Number
 from operator import eq

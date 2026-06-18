@@ -95,8 +95,7 @@ def check_schema(file: pq.ParquetFile, spec: DataObject) -> dict[str, list[str]]
                 dtype.append((name, "O"))
             else:
                 dtype.append((name, PARQUET_PHYSICAL_TYPE_MAP[phystype]))
-    errors = generic.check_schema(np.dtype(dtype), spec)
-    return errors
+    return generic.check_schema(np.dtype(dtype), spec)
 
 
 PARQUET_METADATA_TRUE_RE = re.compile(r"(?i)\A(?:t(?:rue)?|yes|on|1)\Z")

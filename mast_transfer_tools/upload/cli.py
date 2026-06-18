@@ -159,7 +159,7 @@ def main() -> None:
 )
 def populate_label(
     *, source: str, label: Path, output: Path, filetype_names: str | None
-):
+) -> None:
     """
     Populate (or repopulate) the filetypes section of a label by analyzing
     files in <source>, where `<source>` is either the root directory of a tree
@@ -362,7 +362,7 @@ def populate_label(
 )
 def report_filetypes(
     *, source: str, label: Path, output: Path = Path("filetypes.csv")
-):
+) -> None:
     """
     Write a CSV file containing matching filetypes as described in <label>
     for all files under <source>. The file has two columns: "path" and
@@ -506,7 +506,7 @@ def transfer(
 @click.argument("file", metavar="<file>", type=str)
 @click.argument("label", metavar="<label>", type=Path)
 @object_check_hook_option
-def validate(*, file: str, label: Path, object_check_hook: bool):
+def validate(*, file: str, label: Path, object_check_hook: bool) -> None:
     """
     Validate an individual file against a label. This command confirms that
     the label itself is valid and that the filename matches exactly one
@@ -533,7 +533,7 @@ def validate(*, file: str, label: Path, object_check_hook: bool):
         object_check_hook=object_check_hook
     )
     if success:
-        rprint(f"[green]Successfully validated.")
+        rprint("[green]Successfully validated.")
     else:
         rprint(f"[red]Failed validation:\n{msg}")
 
@@ -556,7 +556,7 @@ def validate_all(
     label: Path,
     index_file: Path | None = None,
     object_check_hook: bool = True
-):
+) -> None:
     """
     Validate all files under <source> against <label>.
 
@@ -651,7 +651,7 @@ def validate_all(
         if not success
     }
     if len(failed_files) == 0:
-        rprint(f"[green]All files successfully validated")
+        rprint("[green]All files successfully validated")
         sys.exit(0)
     rprint(f"[red]{len(failed_files)}/{len(targets)} failed validation.")
     print("\n\n----\n\n")
@@ -661,7 +661,7 @@ def validate_all(
 
 @main.command()
 @click.argument("label", metavar="<label>", type=Path)
-def check_label(label: Path):
+def check_label(label: Path) -> None:
     """Checks a label for syntactic validity."""
     parsed_label = Label.from_file(label)
     require_no_label_errors(parsed_label, label)
@@ -681,7 +681,7 @@ def check_label(label: Path):
 )
 def checksum(
     *, source: str, index_file: Path, output: Path = Path("index.csv")
-):
+) -> None:
     """
     Add CRC32 checksums to an existing index file.
     """
@@ -698,7 +698,7 @@ def checksum(
     table = require_index(index_file)
 
     try:
-        writer = open(output, "wb")
+        writer = open(output, "wb")  # noqa: SIM115
         writer.close()
     except Exception as ex:
         sys.stderr.write(f"Can't write to {output}: {ex}.")
@@ -744,7 +744,7 @@ def index(
     output: Path = Path("index.csv"),
     make_checksums: bool = False,
     label: Path | None = None,
-):
+) -> None:
     """
     Create an index file suitable for use with other mast-upload commands. If
     -c / --make-checksums is passed, also calculate CRC32 checksums for each
@@ -776,7 +776,7 @@ def index(
         sys.exit(1)
 
     try:
-        writer = open(output, "wb")
+        writer = open(output, "wb")  # noqa: SIM115
         writer.close()
     except Exception as ex:
         sys.stderr.write(f"Can't write to {output}: {ex}.")

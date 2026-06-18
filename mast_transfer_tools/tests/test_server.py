@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime as dt
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping, Sequence, Callable
 from io import BytesIO
 
 from astropy.io.fits import HDUList, ImageHDU, PrimaryHDU
@@ -99,19 +99,27 @@ def make_sci_fits_blob(dtype: str) -> bytes:
     return ostream.getvalue()
 
 
-def fake_loader_for_validation_server_fits_test(standard: str) -> HDUList:
+def fake_loader_for_validation_server_fits_test(
+    standard: str
+) -> Callable[[str, FakeMutableBucket], HDUList]:
     assert standard.lower() == "fits"
 
-    def load_fits_from_fake_bucket(key: str, bucket: FakeMutableBucket):
+    def load_fits_from_fake_bucket(
+        key: str, bucket: FakeMutableBucket
+    ) -> HDUList:
         return fits_open(BytesIO(bucket.read(key, mode="rb")))
 
     return load_fits_from_fake_bucket
 
 
-def bucket_factory_for(registry: FakeBucketRegistry):
+def bucket_factory_for(
+    registry: FakeBucketRegistry
+) -> Callable[[str, ...], FakeMutableBucket]:
     """Return the Bucket replacement used by validation-core construction."""
 
-    def bucket_factory(bucket_name: str, *_args: Any, **_kwargs: Any):
+    def bucket_factory(
+        bucket_name: str, *_args: Any, **_kwargs: Any
+    ) -> FakeMutableBucket:
         return registry.get_or_make(bucket_name)
 
     return bucket_factory
@@ -119,17 +127,17 @@ def bucket_factory_for(registry: FakeBucketRegistry):
 
 class FakeSQSClient:
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         pass
 
-    def send_message(self, *, QueueUrl, MessageBody):
+    def send_message(self, *, QueueUrl: str, MessageBody: str) -> None:
         if not isinstance(QueueUrl, str):
             raise TypeError("QueueUrl must be a string")
         if not isinstance(MessageBody, str):
             raise TypeError("MessageBody must be a string")
 
 
-def make_fake_boto_client(name, **_):
+def make_fake_boto_client(name: str, **_: Any) -> object:
     if name == "sqs":
         return FakeSQSClient()
     return object()

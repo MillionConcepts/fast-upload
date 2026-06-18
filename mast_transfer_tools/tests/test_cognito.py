@@ -557,6 +557,7 @@ def test_concurrent_ensure_credentials_collapses_refresh_storm(
 def test_expiration_exactly_at_refresh_margin_counts_as_expiring(
     identity_client: FakeCognitoIdentityClient,
     seconds_after_margin: int,
+    *,
     should_refresh: bool,
 ) -> None:
     margin = timedelta(minutes=5)

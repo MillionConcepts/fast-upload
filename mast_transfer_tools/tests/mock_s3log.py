@@ -5,7 +5,6 @@ Minimal mocks of s3log objects for upload client & validator tests.
 from __future__ import annotations
 
 import datetime as dt
-import time
 from collections import deque
 from collections.abc import Mapping, Sequence
 from typing import Any
@@ -50,6 +49,7 @@ class MockS3TSVWriter:
         self,
         bucket: Any,
         key: str,
+        *,
         fields: FieldSpec,
         fixed: Mapping[str, str] | None = None,
         safe: bool = True,

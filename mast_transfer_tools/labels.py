@@ -871,7 +871,6 @@ class Label(LabelElement):
     def covered_files_s3(self, bucket: 'Bucket', prefix: str) -> Iterable[
         tuple[str, list[Filetype]]
     ]:
-        from hostess.aws.s3 import Bucket
         for key in bucket.ls(prefix, recursive=True, formatting="simple"):
             # we can assume every entry in the listing is a regular file
             # and they all begin with the prefix

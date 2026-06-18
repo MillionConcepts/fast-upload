@@ -30,7 +30,7 @@ from yaml import YAMLError, MarkedYAMLError
 import mast_transfer_tools.validation
 from mast_transfer_tools.labels import Label, STANDARDS_SUPPORTING_DATA_VALIDATION
 
-from typing import Literal, TYPE_CHECKING
+from typing import Literal
 
 
 def configure_logging(level: int) -> None:
@@ -309,8 +309,6 @@ def validate_chatty(
             f"data-level validation)"
         ), True
 
-    import mast_transfer_tools.validation
-
     try:
         failures = mast_transfer_tools.validation.validate(
             ft, file, bucket=bucket_name, object_check_hook=object_check_hook
@@ -346,7 +344,7 @@ def require_valid_targets(
             t for t, h in zip(heads, targets) if isinstance(h, Exception)
         ]
     if len(missing) > 0:
-        sys.stderr.write(f"not found:\n{'\n'.join(missing)}")
+        sys.stderr.write("not found:\n" + '\n'.join(missing))
         sys.exit(1)
     return targets
 

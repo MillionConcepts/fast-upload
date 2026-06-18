@@ -541,7 +541,6 @@ class FakeMutableBucket(MockBucket):
                 "size": len(data),
             }
         )
-        return None
 
     def append(
         self,
@@ -566,7 +565,6 @@ class FakeMutableBucket(MockBucket):
                 "size": len(data),
             }
         )
-        return None
 
     def get(
         self,
@@ -692,7 +690,6 @@ class FakeMutableBucket(MockBucket):
         self.last_modified.pop(key, None)
         self.object_metadata.pop(key, None)
         self.calls["rm"].append({"key": key})
-        return None
 
     def cp(
         self,
