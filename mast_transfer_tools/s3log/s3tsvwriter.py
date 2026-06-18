@@ -6,7 +6,7 @@ import time
 from io import StringIO
 from itertools import chain
 from types import MappingProxyType as MPt
-from typing import Sequence, Mapping
+from typing import Sequence, Mapping, Hashable
 
 from hostess.aws.s3 import Bucket
 from hostess.utilities import StoppableFuture
@@ -39,7 +39,7 @@ class S3TSVWriter:
         buftime: float = 0.5,
         shared_lock: LockType | None = None,
         buf_poll_rate: float = 0.08
-    ):
+    ) -> None:
         self.fields = tuple(f["name"] for f in fields)
         if add_timestamps is True and "time" not in self.fields:
             raise ValueError(
@@ -67,7 +67,7 @@ class S3TSVWriter:
             self.exc, self._object_write_loop
         )
 
-    def stop(self):
+    def stop(self) -> None:
         """
         Shut this object down. Wait up to 10 seconds to finish writes, then
         stop the write future. There is not a mechanism for restarting:
@@ -83,10 +83,10 @@ class S3TSVWriter:
         self.write_future.stop()
 
     @property
-    def stopped(self):
+    def stopped(self) -> bool:
         return self.write_future.done()
 
-    def _bufwait(self, _sigdict) -> bool:
+    def _bufwait(self, _sigdict: dict) -> bool:
         """
         Wait until the buffer is nonempty or we are signaled to stop. Returns
         True if the buffer is nonempty, False if we have been signaled to stop.
@@ -97,7 +97,7 @@ class S3TSVWriter:
             time.sleep(self.buf_poll_rate)
         return True
 
-    def _object_write_loop(self, _sigdict, _id):
+    def _object_write_loop(self, _sigdict: dict, _id: Hashable) -> None:
         """
         Top-level loop for writing. Waits for text to appear in self.buf,
         append-writes it to the TSV object at self.key in self.bucket, then
@@ -112,7 +112,7 @@ class S3TSVWriter:
                 self.buf = StringIO()
                 self.writer = csv.writer(self.buf, dialect="fastlog")
 
-    def _write_to_buffer(self, field_values) -> None:
+    def _write_to_buffer(self, field_values: dict[str, str]) -> None:
         """Write a TSV row into this object's write buffer."""
         with self.lock:
             self.writer.writerow(

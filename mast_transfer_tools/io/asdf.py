@@ -4,7 +4,6 @@ import logging
 
 import asdf
 import asdf.tags.core
-from astropy.table import Table
 import astropy.table
 from cytoolz import get_in, valfilter, merge, valmap
 from hostess.aws.s3 import Bucket
@@ -25,7 +24,9 @@ DEFAULT_ASDF_DATA_OBJECT_TYPES = (
 )
 
 
-def sanitize_data_tag(node, autoload=False):
+# NOTE: there is no consistent top-level tag class we can use to more
+# consistently type this.
+def sanitize_data_tag(node: Any, *, autoload: bool = False) -> Any:
     if isinstance(node, asdf.tags.core.NDArrayType):
         if autoload is True and node._array is None:
             return np.asarray(node)
@@ -34,7 +35,7 @@ def sanitize_data_tag(node, autoload=False):
     return node
 
 
-def sanitize_schema_descr(descr) -> str | None:
+def sanitize_schema_descr(descr: dict) -> str | dict | None:
     """Pull the "real" description from an ASDF schema description."""
     if descr is None:
         return descr
@@ -75,6 +76,7 @@ def unnest_to_pathkeys(nested: Mapping) -> dict[tuple[Hashable, ...], Any]:
 def extract_objects(
     asdf_file: asdf.AsdfFile,
     datatypes: tuple[type] = DEFAULT_ASDF_DATA_OBJECT_TYPES,
+    *,
     autoload: bool = False,
     use_full_paths: bool = True,
 ) -> tuple[
@@ -101,7 +103,9 @@ def extract_objects(
     flat_tree = valfilter(
         lambda v: isinstance(v, datatypes), unnest_to_pathkeys(asdf_file.tree)
     )
-    flat_tree = valmap(lambda v: sanitize_data_tag(v, autoload), flat_tree)
+    flat_tree = valmap(
+        lambda v: sanitize_data_tag(v, autoload=autoload), flat_tree
+    )
     info = asdf_file.schema_info()
     descriptions = {
         k: sanitize_schema_descr(get_in(k, info)) for k in flat_tree.keys()

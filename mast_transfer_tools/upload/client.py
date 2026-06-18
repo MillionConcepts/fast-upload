@@ -8,7 +8,7 @@ import random
 import re
 from string import ascii_lowercase
 import time
-from typing import Literal
+from typing import Literal, Any
 
 import botocore.config
 import botocore.session
@@ -50,15 +50,15 @@ class ClientFile:
         ready: file has not yet been transferred to S3 or queued for transfer,
             but we plan to transfer it.
         pending: file is queued for transfer to S3.
-        failed: file failed to transfer to S3 due to network or other error. 
+        failed: file failed to transfer to S3 due to network or other error.
             This state does not indicate validation failure: a 'failed' file
             is not available to the validator at all. If retries < max_retries,
             the file is eligible for another attempt at transfer.
         transferring: file is currently transferring to S3.
         done: file has been transferred to S3 but not yet validated.
         valid: file has been marked as present and valid by the validator.
-        invalid: file has been marked as missing/invalid by the validator, 
-            or the validation process appears to be irregular/invalid (e.g., 
+        invalid: file has been marked as missing/invalid by the validator,
+            or the validation process appears to be irregular/invalid (e.g.,
             the validator reports it valid despite us not transferring it).
     """
 
@@ -75,7 +75,7 @@ class ClientFile:
     """CRC32 bytes, base64-encoded, for example 'yH2GHg==', if provided"""
 
     @property
-    def can_transfer(self):
+    def can_transfer(self) -> bool:
         return (
             self.state == "ready"
             or (self.state == "failed" and self.retries < self.max_retries)
@@ -83,12 +83,12 @@ class ClientFile:
     """Is it ok to queue this file for transfer?"""
 
     @property
-    def no_retry(self):
+    def no_retry(self) -> bool:
         return self.state == "failed" and self.retries >= self.max_retries
     """Does this file appear to be impossible to transfer?"""
 
     @property
-    def is_complete(self):
+    def is_complete(self) -> bool:
         return self.state in ("invalid", "valid") or self.no_retry
     """Is there nothing left to do with this file at all?"""
 
@@ -98,14 +98,14 @@ class DataRoot:
     Compatibility layer for S3 -> S3 and local -> S3 operations.
     """
 
-    def __init__(self, source: Path | Bucket):
+    def __init__(self, source: Path | Bucket) -> None:
         self.source = source
         if not isinstance(self.source, (Bucket, Path)):
             raise TypeError(f"base must be Bucket or Path, got {type(source)}")
         self.is_local = isinstance(self.source, Path)
         self.name = str(source) if self.is_local else source.name
 
-    def cp(self, source: ClientFile, destination_bucket: Bucket):
+    def cp(self, source: ClientFile, destination_bucket: Bucket) -> str | None:
         """Upload a file from local to S3, or initiate S3-to-S3 object copy."""
 
         # NOTE: there is no direct mechanism for asserting a checksum
@@ -139,12 +139,12 @@ class NothingToDoError(ValueError):
 
 class UploadClientError(ClientError):
     """
-    mock for botocore ClientError, which does a bunch of complicated stuff
+    alias for botocore ClientError, which does a bunch of complicated stuff
     with running botocore operations when initialized, so is very inconvenient
     to just spuriously instantiate
     """
 
-    def __init__(self, *args):
+    def __init__(self, *args: Any) -> None:
         Exception.__init__(self, *args)
 
 
@@ -167,6 +167,7 @@ class UploadClient:
     """
     def __init__(
         self,
+        *,
         dataset: str,
         delivery_id: str,
         file_index: pd.DataFrame,
@@ -177,7 +178,7 @@ class UploadClient:
         n_threads: int = 1,
         debug: bool = False,
         max_retries: int = 2,
-    ):
+    ) -> None:
         if own_agent_id is None:
             self.own_agent_id = "".join(
                 random.choices(ascii_lowercase, k=11)
@@ -401,7 +402,7 @@ class UploadClient:
                 # files should be done in conversation with the archive.
                 n_invalid += 1
         if n_valid == len(self.file_list):
-            self.cmessage(f"all files valid; nothing to do", "success")
+            self.cmessage("all files valid; nothing to do", "success")
             raise NothingToDoError()
         if n_valid > 0:
             self.cmessage(
@@ -430,7 +431,7 @@ class UploadClient:
                 f"refusing to connect from client state {self.state}",
                 "warning"
             )
-            return
+            return None
         self.cmessage("initializing AWS connection", "info")
         try:
             self._connect()
@@ -441,6 +442,7 @@ class UploadClient:
         self.cmessage(
             "AWS connection established, ready to initiate transfer", "success"
         )
+        return None
 
     def crash(self, exception: BaseException) -> None:
         """
@@ -552,7 +554,7 @@ class UploadClient:
                 "error"
             )
             return
-        self.cmessage(f"writing file index", "info")
+        self.cmessage("writing file index", "info")
         index = self.file_index.copy()
         index["will_transfer"] = [f.can_transfer for f in self.file_list]
         buf = BytesIO()
@@ -607,14 +609,14 @@ class UploadClient:
                 )
             else:
                 self.cmessage(
-                    f"validation run complete; quitting. All files "
-                    f"successfully validated.",
+                    "validation run complete; quitting. All files "
+                    "successfully validated.",
                     "success"
                 )
         elif self.transfer_complete:
             self.cmessage(
-                f"All files transferred, but quitting before validation "
-                f"complete.",
+                "All files transferred, but quitting before validation "
+                "complete.",
                 "warning"
             )
         else:
@@ -670,7 +672,7 @@ class UploadClient:
             self._log_failed_transfer(file, e)
 
     @property
-    def next_file(self):
+    def next_file(self) -> ClientFile | None:
         """Next file available for transfer."""
         for f in self.file_list:
             if f.can_transfer:
@@ -794,6 +796,7 @@ class UploadClient:
             "validation pipeline successfully started, ready to transfer",
             "success"
         )
+        return None
 
     def excformat(self, exc: BaseException) -> str:
         """Format an exception for printing / logging."""
@@ -809,17 +812,17 @@ class UploadClient:
         self,
         text: str,
         mtype: Literal["warning", "error", "info", "complete", "success"],
-    ):
+    ) -> None:
         """Print a message in a predefined message-category color."""
         return self._colorprint(text, CCOLORS[mtype])
 
-    def cprint(self, renderable, padded=True, **print_kwargs):
+    def cprint(self, renderable: str, *, padded: bool = True) -> None:
         """Print a message to our virtual console."""
         if padded:
             renderable = Padding(renderable)
-        return self.console.print(renderable, **print_kwargs)
+        return self.console.print(renderable)
 
-    def _update_files(self):
+    def _update_files(self) -> None:
         """
         Check for messages from the validator retrieved from the S3 log
         object; update file statuses and inform user of results as relevant.
@@ -908,7 +911,7 @@ class UploadClient:
         try:
             self._update_files()
         except Exception as ex:
-            self.cmessage(f"fatal error in file update, terminating", "error")
+            self.cmessage("fatal error in file update, terminating", "error")
             self.crash(ex)
         if self.transfer_complete and self.state == "running":
             self.cmessage(

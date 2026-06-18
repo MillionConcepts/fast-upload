@@ -97,7 +97,7 @@ class FakeECSClient:
 class FakeECSTask:
     """Fake ECSTask with controllable logs."""
 
-    def __init__(self, _task: dict[str, Any], logs: list[str] | None = None):
+    def __init__(self, _task: dict[str, Any], logs: list[str] | None = None) -> None:
         self.logs = (
             ["Initializing pipeline for tests"] if logs is None else logs
         )

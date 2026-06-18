@@ -106,3 +106,24 @@ class ValidationSQSReport(TypedDict):
     details: ValidationDetails
     validation_result: ValidationStatus
     pipeline_exception: str  # "None" if no exception
+
+
+class PipelineLaunchParameters(TypedDict):
+    """
+    Information the validation pipeline expects to receive from the
+    pipeline launch lambda on startup in normal operation.
+    """
+    dataset: str
+    delivery_id: str
+    transfer_type: TransferType
+
+
+class LambdaEventParameters(TypedDict):
+    """
+    Information the pipeline launch lambda expects to receive from the upload
+    client on invocation in normal operation.
+    """
+    dataset: str
+    delivery_id: str
+    transfer_type: TransferType
+    agent_id: str

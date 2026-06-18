@@ -9,6 +9,7 @@ import json
 import time
 
 import random
+from functools import partial
 from pathlib import Path
 from typing import Callable, TypedDict, Any
 
@@ -18,7 +19,6 @@ from dustgoggles.dynamic import exc_report
 from hostess.aws.ecs import ls_tasks, ECSTask
 from hostess.aws.s3 import Bucket
 from hostess.aws.utilities import init_client, make_boto_client
-from hostess.utilities import curry
 import yaml
 
 import mast_transfer_tools.config as conf
@@ -42,11 +42,12 @@ from mast_transfer_tools.types import (
     YAMLString,
     PipelineNetworkConfig,
     TransferType,
+    LambdaEventParameters,
 )
 import mast_transfer_tools.utilz.name_reference as names
 
 
-yload = curry(yaml.load, Loader=yaml.CLoader)
+yload = partial(yaml.load, Loader=yaml.CLoader)
 
 
 # NOTE: the TaskConfig typing here is a little sketchy. We expect to have a
@@ -58,9 +59,19 @@ def _load_tconfig(cbucket: "Bucket", key: str) -> TaskConfig:
 
 
 def read_task_config(
-    event, netconf_params: PipelineNetworkConfig
-) -> tuple[dict | None, str | None]:
+    event: LambdaEventParameters, netconf_params: PipelineNetworkConfig
+) -> tuple[TaskConfig | None, str | None]:
+    """
+    Read a task configuration from the configuration bucket. If no special
+    config exists for this dataset, just read the default config; otherwise,
+    use anything in this dataset's config as overrides for the default config.
 
+    Returns:
+        config: TaskConfig if config(s) were found and parsed correctly; None
+            otherwise
+        exception_message: str if config(s) weren't found and parsed
+            correctly, None otherwise
+    """
     bucket_constructor = Bucket
     try:
         cbucket = bucket_constructor(netconf_params["CONFIG_BUCKET"])
@@ -97,14 +108,16 @@ class _CleanupDict(TypedDict):
     exid: int | None
 
 
-def encode_kwargs(**kwargs):
+def encode_kwargs(**kwargs: Any) -> str:
+    """Compress and encode a kwarg blob for the validation client."""
     kwarg_json = json.dumps(kwargs)
     kwarg_gzip = gzip.compress(kwarg_json.encode("utf-8"))
     kwargblob = b64encode(kwarg_gzip)
     return kwargblob.decode("ascii")
 
 
-def load_kwargs(kwargblob):
+def load_kwargs(kwargblob: str) -> LambdaEventParameters:
+    """Load the encoded and compressed kwarg blob."""
     kwargstring = gzip.decompress(b64decode(kwargblob))
     return json.loads(kwargstring)
 
@@ -115,7 +128,13 @@ def run_validation_task(
     transfer_type: TransferType,
     tags: dict[str, str],
     config: TaskConfig,
-):
+) -> dict:
+    """
+    Run the validation task on Fargate.
+
+    See boto3 docs for a more detailed definition of the return type:
+    https://docs.aws.amazon.com/boto3/latest/reference/services/ecs/client/run_task.html
+    """
     kwargblob = encode_kwargs(
         dataset=dataset, delivery_id=delivery_id, transfer_type=transfer_type
     )
@@ -155,21 +174,23 @@ def run_validation_task(
 def lambda_cleanup(
     func: Callable[
         [
-            dict[str, Any],
-            "LambdaContext",
+            LambdaEventParameters,
+            object,
             PipelineNetworkConfig,
             dict[str, str],
             _CleanupDict,
         ],
         YAMLString,
     ]
-) -> Callable[[dict[str, Any], "LambdaContext"], YAMLString]:
+) -> Callable[[LambdaEventParameters, object], YAMLString]:
     """
     Exists to avoid wrapping the whole body of main() in an ugly
-    try-except-finally block. Basically `goto cleanup;`
+    try-except-finally block. Basically `goto cleanup`
     """
 
-    def with_lambda_cleanup(event: dict[str, Any], context: "LambdaContext"):
+    def with_lambda_cleanup(
+        event: LambdaEventParameters, context: object
+    ) -> YAMLString:
         cleanup_dict: _CleanupDict = {
             "bucket": None,
             "exid": None,
@@ -204,7 +225,9 @@ def lambda_cleanup(
     return with_lambda_cleanup
 
 
-def unpack_locations(event, netconf: PipelineNetworkConfig):
+def unpack_locations(
+    event: LambdaEventParameters, netconf: PipelineNetworkConfig
+) -> tuple[str, str, str, str]:
     dataset, delivery_id, ttype = (
         event[n] for n in ("dataset", "delivery_id", "transfer_type")
     )
@@ -222,8 +245,11 @@ def unpack_locations(event, netconf: PipelineNetworkConfig):
 
 @lambda_cleanup
 def main(
-    event: dict[str, Any],
-    _context: "LambdaContext",
+    event: LambdaEventParameters,
+    # NOTE: in real operation, _context is a LambdaContext object as defined in
+    # aws-lambda-python-runtime-interface-client. We don't actually use it
+    # here, so we don't bother typing it in a more robust way.
+    _context: object,
     netconf: PipelineNetworkConfig,
     tags: dict[str, str],
     cleanup_dict: _CleanupDict,
@@ -239,9 +265,8 @@ def main(
         cbucket = bucket_constructor(cbucket_name)
         cbucket.ls()
     except Exception as ex:
-        # We can't list the transfer bucket, or possibly can't even see it
-        # at all. Perhaps it doesn't even exist! This is a hard failure
-        # condition.
+        # We can't list -- or maybe even see -- the transfer bucket.
+        # Perhaps it doesn't even exist! This is a hard failure condition.
         print(f"{exc_report(ex)}\n")
         return cbucket_err_response(ex)
     llock_status = check_lock(
@@ -295,7 +320,7 @@ def main(
         )
         task = ECSTask(ls_tasks(name=vtask_name)[0])
         task.wait_while_pending(timeout=80)
-        print(f"task is running\n")
+        print("task is running\n")
     except Exception as ex:
         # this failure probably indicates that the task never started, or if
         # it did, never transitioned to the RUNNING state -- there's some
@@ -309,8 +334,8 @@ def main(
     start = time.time()
     # NOTE: this is not intended to be a full-on supervisor and is not
     #  responsible for the pipeline's behavior _after_ startup. But if the
-    #  pipeline fails to start _at all_, we need to tell the client about it,
-    #  because it likely wasn't able to write to the S3 log object and the
+    #  pipeline fails to start _at all_, we need to tell the client about it.
+    #  The pipeline likely wasn't able to write to the S3 log object and the
     #  client has no access to Cloudwatch or ECS to know it failed.
     print("waiting on task\n")
     while True:

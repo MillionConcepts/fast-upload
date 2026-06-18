@@ -57,7 +57,7 @@ class MockS3TSVWriter:
         buftime: float = 0.5,
         shared_lock: Any = None,
         buf_poll_rate: float = 0.08,
-    ):
+    ) -> None:
         self.bucket = bucket
         self.key = key
         self.field_spec = tuple(fields)
@@ -129,7 +129,7 @@ class MockS3TSVWriter:
 class MockS3TSVReader:
     """Push-driven mock of ``S3TSVReader``."""
 
-    def __init__(self, bucket: Any, key: str, fields: FieldSpec):
+    def __init__(self, bucket: Any, key: str, fields: FieldSpec) -> None:
         self.bucket = bucket
         self.key = key
         self.field_spec = tuple(fields)

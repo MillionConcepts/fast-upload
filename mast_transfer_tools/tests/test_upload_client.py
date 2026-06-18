@@ -85,7 +85,7 @@ class FakeLambdaClient:
         response: str | bytes = b"success",
         *,
         invoke_exception: BaseException | None = None,
-    ):
+    ) -> None:
         self.response = response
         self.invoke_exception = invoke_exception
         self.calls: list[LambdaInvokeCall] = []
@@ -155,7 +155,7 @@ class FakeSession:
         self,
         lambda_client: FakeLambdaClient | None = None,
         ssm_client: FakeSSMClient | None = None,
-    ):
+    ) -> None:
         self.lambda_client = (
             FakeLambdaClient() if lambda_client is None else lambda_client
         )

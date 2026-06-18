@@ -18,7 +18,7 @@ class S3TSVReader:
         bucket: Bucket,
         key: str,
         fields: Sequence[LogFieldRec]
-    ):
+    ) -> None:
         self._logtail = deque()
         self.field_spec = tuple(fields)
         self.fields = [f["name"] for f in fields]
@@ -32,16 +32,16 @@ class S3TSVReader:
         self.key = key
 
     @property
-    def running(self):
+    def running(self) -> bool:
         """Does the reader appear to be running?"""
         return is_running(self.tail_future)
 
     @property
-    def crashed(self):
+    def crashed(self) -> bool:
         """Does the reader appear to have crashed?"""
         return is_crashed(self.tail_future)
 
-    def start(self, *, force=False):
+    def start(self, *, force: bool = False) -> None:
         """Start or restart the log reader."""
         if self.running:
             raise ValueError("Already running")
@@ -51,7 +51,7 @@ class S3TSVReader:
             self.key, self._logtail, permit_missing=True
         )
 
-    def stop(self):
+    def stop(self) -> None:
         """
         Stops the log reader. Note that, unlike S3TSVWriter, there is no
         expectation that the log reader will drain the queue during stop:
@@ -65,7 +65,8 @@ class S3TSVReader:
         if self.tail_future is not None:
             self.tail_future.stop()
 
-    def _raise_bad_log_format(self, log: pd.DataFrame):
+    def _raise_bad_log_format(self, log: pd.DataFrame) -> None:
+        """Raise a LogFormatError if a log chunk appears invalid."""
         if len(log.columns) != len(self.fields):
             raise LogFormatError(
                 f"wrong number of columns: expected {len(self.fields)}, "

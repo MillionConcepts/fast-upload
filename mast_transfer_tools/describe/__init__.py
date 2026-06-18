@@ -9,7 +9,6 @@ those label objects to describe classes of files included in a data set.
 # need to be in the 'generic' submodule instead.
 
 import logging
-import os
 
 from collections import defaultdict
 from pathlib import Path

@@ -13,13 +13,12 @@ import json
 import os
 import time
 import warnings
-from typing import TypedDict
 
 from dustgoggles.dynamic import exc_report
 from urllib3.connectionpool import InsecureRequestWarning
 
 from mast_transfer_tools.server.core import ValidationSession
-from mast_transfer_tools.types import TransferType
+from mast_transfer_tools.types import PipelineLaunchParameters
 
 # TODO: this is, hopefully, temporary. it is addressing the log spam from the
 #  validator due to unverified SSL certs; we cannot verify the certs from ECS
@@ -27,17 +26,7 @@ from mast_transfer_tools.types import TransferType
 warnings.filterwarnings(category=InsecureRequestWarning, action="ignore")
 
 
-class PipelineLaunchParameters(TypedDict):
-    """
-    Information the validation pipeline expects to receive from the
-    pipeline launch lambda on startup in normal operation.
-    """
-    dataset: str
-    delivery_id: str
-    transfer_type: TransferType
-
-
-def load_kwarg_blob(env_var="KWARGBLOB"):
+def load_kwarg_blob(env_var: str = "KWARGBLOB") -> PipelineLaunchParameters:
     blob = os.environ.get(env_var)
     if blob is None:
         raise RuntimeError(
@@ -53,24 +42,24 @@ def load_kwarg_blob(env_var="KWARGBLOB"):
         )
 
 
-def printexit():
+def printexit() -> None:
     print("exiting pipeline handler")
 
 
-def main():
+def main() -> None:
     atexit.register(printexit)
     vs = None
     try:
         kwargs: PipelineLaunchParameters = load_kwarg_blob()
         print(f"Pipeline initialization kwargs: {kwargs}\n")
         vs = ValidationSession.from_launch_parameters(**kwargs)
-        print(f"Initializing pipeline\n")
+        print("Initializing pipeline\n")
         vs.start()
         while vs.running:
             time.sleep(1)
     except Exception as e:
         print("encountered unhandled exception:\n")
-        print(f"{str(exc_report(e)).replace('\n', ' ; ')}\n")
+        print(str(exc_report(e)).replace('\n', ' ; ') + "\n")
     if vs is None:
         print("validation session failed to initialize")
     elif vs.crashed:

@@ -4,7 +4,6 @@ Description of ASDF files
 
 from pathlib import Path
 
-import asdf
 import numpy as np
 import pandas as pd
 import pyarrow as pa
@@ -90,7 +89,9 @@ def _n_unique_object_sets(trees: list[list[dict]]) -> int:
 GROUPPAT = re.compile(r"(.*?)((?:_|\d)*\d+)$")
 
 
-def assign_unordered_stemgroups(tree, stems):
+def assign_unordered_stemgroups(
+    tree: list[dict], stems: list[str]
+) -> str | None:
     for obj in tree:
         if m := GROUPPAT.match(obj["name"][-1]):
             matches = [
@@ -108,7 +109,9 @@ def assign_unordered_stemgroups(tree, stems):
     return None
 
 
-def chunk_repeated_unordered_objects(trees: list[list[dict]]):
+def chunk_repeated_unordered_objects(
+    trees: list[list[dict]]
+) -> tuple[list[list[dict]], str | None]:
     """
     Find groups of 'repeated' unordered objects (notionally ASDF nodes)
     shared among all elements of trees. Limited to finding 'repetitions'
@@ -120,9 +123,6 @@ def chunk_repeated_unordered_objects(trees: list[list[dict]]):
     not required with respect to other nodes across all elements of 'trees' --
     this would make no sense, as there is no canonical ordering on ASDF trees.
     """
-    # TODO, maybe: support final int element (e.g. for variable-length lists
-    #  of similar nodes)
-
     # everything is the same; moving on
     if _n_unique_object_sets(trees) < 2:
         return trees, None

@@ -69,7 +69,7 @@ class close_or_forget(Generic[SC]):
 
     _resource: SC | None
 
-    def __init__(self, resource: SC):
+    def __init__(self, resource: SC) -> None:
         self._resource = resource
 
     def __enter__(self) -> Self:
@@ -116,7 +116,7 @@ class RelPathDirEntry:
     path: Path
     base: Path
 
-    def __init__(self, inner: os.DirEntry[str], base: Path, path: Path):
+    def __init__(self, inner: os.DirEntry[str], base: Path, path: Path) -> None:
         self._inner = inner
         self.path = path
         self.base = base

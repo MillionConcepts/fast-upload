@@ -1,7 +1,7 @@
 from io import StringIO
 import time
 
-from typing import Literal, TypeAlias
+from typing import Literal, TypeAlias, Any
 
 import dateutil.parser as dtp
 import pandas as pd
@@ -48,16 +48,16 @@ Meanings are:
 
 FileIndex: TypeAlias = pd.DataFrame
 """
-Alias for a DataFrame created from a file index and a dataset label. It 
+Alias for a DataFrame created from a file index and a dataset label. It
 has the following columns:
 
 * path: path to file from bucket / tree root.
-* filename: name of the file  
+* filename: name of the file
 * type: file type (if any) as inferred from filename, based on definitions
- in label 
-* state: general state of the file; legal values are the members of 
+ in label
+* state: general state of the file; legal values are the members of
   FileState.
-* n_fail: number of failed upload attempts as reported by client    
+* n_fail: number of failed upload attempts as reported by client
 """
 
 
@@ -87,7 +87,7 @@ class ValidationState:
         transfer_timeout: float = 600,
         missing_timeout: float = 240,
         max_failures: int = 10,
-    ):
+    ) -> None:
         self.index = index
         self.label = label
         self.extra_files = []
@@ -105,7 +105,7 @@ class ValidationState:
     def done(self) -> bool:
         return self.n_expected_files == self.n_completed
 
-    def _check_timeout(self):
+    def _check_timeout(self) -> bool:
         """
         Update client_missing and client_absent by checking timeout thresholds.
         Do not call this directly unless you are certain that
@@ -273,46 +273,46 @@ class ValidationState:
         """Has the client completed its transfer (valid or not?)"""
         return self.n_completed >= self.n_expected_files
 
-    def __getattr__(self, item):
-        if item in ("tail_future", "logtail", "logbuf", "last_log", "log"):
-            return getattr(self.reader, item)
-        raise AttributeError(f"ValidationState has no attribute '{item}'")
+    def __getattr__(self, attr: str) -> Any:
+        if attr in ("tail_future", "logtail", "logbuf", "last_log", "log"):
+            return getattr(self.reader, attr)
+        raise AttributeError(f"ValidationState has no attribute '{attr}'")
 
-    def stop(self):
+    def stop(self) -> None:
         self.reader.stop()
 
     client_status: ClientStatus = "unchecked"
     """
-    Our belief about the general condition of the client application, as 
-    based strictly on what it has reported and not reported. Our timeouts are 
+    Our belief about the general condition of the client application, as
+    based strictly on what it has reported and not reported. Our timeouts are
     a backup for cases in which the client stops working but is unable to log
     this fact (e.g. logging bug, power outage, OS-level kill). This attribute,
-    together with client_absent and session_invalid, tells us whether we 
-    should shut down the validation pipeline. 
+    together with client_absent and session_invalid, tells us whether we
+    should shut down the validation pipeline.
     """
     client_missing: bool = False
     """
-    True if the client application didn't tell us it stopped, but it's 
+    True if the client application didn't tell us it stopped, but it's
     stopped talking for longer than missing_timeout
     """
     client_absent: bool = False
     """
-    True if the client application didn't tell us it stopped, but it's 
+    True if the client application didn't tell us it stopped, but it's
     stopped talking for longer than transfer_timeout
     """
     session_invalid: bool = False
     """
-    Have we encountered enough errors that we are going to ask the client to 
+    Have we encountered enough errors that we are going to ask the client to
     shut down, and refuse to validate any more files?
     """
     fileframe: FileIndex | None = None
     """parsed file index as produced by fast.validation.parse_index_file()"""
     extra_files: list[str]
     """
-    Files not in index but in bucket, and client does not claim to have 
-    uploaded them during this session. This condition might indicate a prior 
-    erroneous upload or an incomplete index, and these should ideally be 
-    managed by the client. 
+    Files not in index but in bucket, and client does not claim to have
+    uploaded them during this session. This condition might indicate a prior
+    erroneous upload or an incomplete index, and these should ideally be
+    managed by the client.
 
     # TODO: 'ideally', pending risk-effort tradespace conversations with MAST.
     """
@@ -339,29 +339,29 @@ class ValidationState:
     """buffer of concatenated, unparsed text read from log"""
     transfer_timeout: float
     """
-    How many seconds we will allow to elapse between messages from the client 
-    before deciding that they've quit without telling us, and shut ourselves 
+    How many seconds we will allow to elapse between messages from the client
+    before deciding that they've quit without telling us, and shut ourselves
     down after completing any pending validation tasks.
     """
     missing_timeout: float
     """
     How many seconds we will allow to elapse between messages from the client
-    before deciding something funny might be going on; we will log it and 
-    prepare cleanup tasks but not fully shut down until we hit 
+    before deciding something funny might be going on; we will log it and
+    prepare cleanup tasks but not fully shut down until we hit
     transfer_timeout.
     """
     last_time: float
     """
-    Timestamp (as UNIX epoch time) of last client message, or, if there 
+    Timestamp (as UNIX epoch time) of last client message, or, if there
     aren't any yet, of this object's initialization.
     """
     n_completed: int = 0
     """
-    Number of files that have completed transfer (not necessarily passed 
+    Number of files that have completed transfer (not necessarily passed
     validation)
     """
     n_failures: int = 0
     """
-    Number of files that have failed an upload attempt or failed to pass 
+    Number of files that have failed an upload attempt or failed to pass
     validation
     """

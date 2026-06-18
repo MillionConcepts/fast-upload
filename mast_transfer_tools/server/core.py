@@ -19,9 +19,13 @@ import time
 from types import MappingProxyType as MPt
 from typing import Any, Sequence, Callable
 
+from asdf import AsdfFile
+from astropy.io.fits import HDUList
 from botocore.exceptions import ClientError
 from dustgoggles.dynamic import exc_report
 import numpy as np
+from pyarrow.parquet import ParquetFile
+
 from hostess.aws.s3 import Bucket
 from hostess.aws.utilities import make_boto_client
 from hostess.utilities import StoppableFuture
@@ -40,7 +44,7 @@ from mast_transfer_tools.types import (
     TransferType,
     ValPipeSettings,
     ValIdent,
-    PipelineNetworkConfig, ValidationStatus, ValidationSQSReport,
+    PipelineNetworkConfig, ValidationSQSReport,
 )
 from mast_transfer_tools.errors import (
     InvalidFileIndexError,
@@ -65,6 +69,7 @@ def add_filetype_classification(
     typename: str,
     filetype: Filetype,
     index: pd.DataFrame,
+    *,
     missing_filetypes_ok: bool
 ) -> pd.DataFrame:
     """
@@ -75,7 +80,7 @@ def add_filetype_classification(
      already-populated filetype's.
     """
     index = index.copy()
-    match_series = pd.Series(np.full_like(index.index, False))
+    match_series = pd.Series(np.full_like(index.index, False))  # noqa: FBT003
     inclusions = [p.pattern for p in filetype.filename if p.include]
     exclusions = [p.pattern for p in filetype.filename if not p.include]
     for i in inclusions:
@@ -99,7 +104,7 @@ def add_filetype_classification(
 
 
 def _maybe_raise(
-    exc: Exception, formatter: Callable[[Exception], dict], do_raise: bool
+    exc: Exception, formatter: Callable[[Exception], dict], *, do_raise: bool
 ) -> dict:
     """Debug wrapper for "optional" behavior"""
     if do_raise:
@@ -111,22 +116,29 @@ def load_data(
     filetype_spec: Filetype,
     key: str,
     bucket: str | Bucket | None = None,
+    *,
     debug: bool = False
-):
+) -> tuple[ParquetFile | AsdfFile | HDUList | None, dict | None]:
     """
     Load an object into memory using the method defined for its standard.
+
+    Returns:
+        data: ParquetFile, AsdfFile, or HDUList as appropriate. Or, if
+            loading fails, None.
+        exception_report: None if loading succeeds. Information on exception
+            if loading fails.
     """
     standard = filetype_spec.standard
     loader = loader_for(standard)
     try:
         data = loader(key, bucket)
     except Exception as exc:
-        return None, _maybe_raise(exc, file_load_error_msg, debug)
+        return None, _maybe_raise(exc, file_load_error_msg, do_raise=debug)
     return data, None
 
 
 def _maybe_check_objs(
-    spec: Filetype, data: Any, debug: bool = False
+    spec: Filetype, data: Any, *, debug: bool = False
 ) -> tuple[dict, dict | None]:
     """
     Check data against objects defined in filetype, if any are defined, plus
@@ -165,7 +177,7 @@ def validate_file_content(
         this valid FITS?')
     """
     try:
-        data, load_err = load_data(spec, key, bucket, debug)
+        data, load_err = load_data(spec, key, bucket, debug=debug)
     except Exception as ex:
         return validation_error_msg(ex), None
     if load_err is not None:
@@ -220,7 +232,7 @@ def _spec_has_data_validation(spec: Filetype | None) -> bool:
 # TODO: define the returned object better
 def validate_file(
     key: str, bucket: Bucket, *, checksum: str | None, spec: Filetype | None
-):
+) -> dict[str, str | dict | None]:
     """
     Handler function for individual file validation. Checks that the object is
     actually present; if it is and the defined filetype implies that data-level
@@ -282,7 +294,10 @@ def parse_index_file(
     global_opts = label.delivery_meta.global_validation_options
     for typename, filetype in label.filetypes.items():
         index = add_filetype_classification(
-            typename, filetype, index, global_opts.missing_filetypes_ok
+            typename,
+            filetype,
+            index,
+            missing_filetypes_ok=global_opts.missing_filetypes_ok
         )
     if not global_opts.no_assigned_filetype_ok:
         n_missing = index['type'].isna().sum()
@@ -294,11 +309,6 @@ def parse_index_file(
     index['n_fail'] = 0
     index.loc[~index['will_transfer'], 'status'] = "done"
     return index
-
-
-# TODO: this sends messages once we have perms to implement that
-def _do_some_kind_of_closeout(validation_state: dict, logger):
-    logger.write(message=str(validation_state))
 
 
 class ValidationManager:
@@ -313,7 +323,7 @@ class ValidationManager:
         label: Label,
         *,
         n_threads: int = 1
-    ):
+    ) -> None:
         self.index, self.label, self.bucket = index, label, bucket
         self.exc = ThreadPoolExecutor(n_threads)
         self.futures: dict[str, concurrent.futures.Future] = {}
@@ -328,7 +338,7 @@ class ValidationManager:
             if _spec_has_data_validation(filetype):
                 self.filetypes_requiring_data[typename] = filetype
 
-    def queue_validation(self, keys: Sequence[str]):
+    def queue_validation(self, keys: Sequence[str]) -> None:
         """
         Check whether a set of uploaded keys are valid targets for validation,
         and, if so, submit them to the thread pool for validation.
@@ -388,7 +398,7 @@ class ValidationManager:
                 status = content["status"]
             except BaseException as ex:
                 content, status = {"message": exc_report(ex)}, "error"
-            self.index.at[ix, "status"] = status
+            self.index.loc[ix, "status"] = status
             results[k] = {"status": status, "message": content.get("message")}
         return results
 
@@ -405,7 +415,7 @@ class ValidationSession:
         identifiers: ValIdent,
         index: FileIndex,
         label: Label
-    ):
+    ) -> None:
         """
         Caution:
             ValidationSession.from_launch_parameters() should typically be
@@ -424,12 +434,12 @@ class ValidationSession:
         self.errors = {}
 
     @property
-    def running(self):
+    def running(self) -> bool:
         """Have we actually launched the pipeline, and is it still going?"""
         return is_running(self.pipe_future)
 
     @property
-    def crashed(self):
+    def crashed(self) -> bool:
         """
         Does the pipeline appear to have encountered an unhandled exception?
         """
@@ -438,15 +448,15 @@ class ValidationSession:
     @classmethod
     def _init_launch_objs(
         cls,
-        bucket_name_stem,
-        confb_name,
-        az_id,
-        cb_name,
-        dataset,
-        delivery_id,
-        settings,
-        tb_name,
-        transfer_type,
+        bucket_name_stem: str,
+        confb_name: str,
+        az_id: str,
+        cb_name: str,
+        dataset: str,
+        delivery_id: str,
+        settings: ValPipeSettings,
+        tb_name: str,
+        transfer_type: TransferType,
         kw: dict | None = None
     ) -> tuple[dict, dict, BaseException | None]:
         """
@@ -565,7 +575,7 @@ class ValidationSession:
         settings: ValPipeSettings = MPt(conf.VAL_PIPE_SETTINGS),
         cb_name: str | None = None,
         tb_name: str | None = None,
-    ):
+    ) -> "ValidationSession":
         """
         Constructor for ValidationSession. Accepts simple string arguments
         that, in normal system operation, will be known to and can easily be
@@ -636,7 +646,7 @@ class ValidationSession:
             exc = TypeError("Sequencing error in pipeline init")
         if exc is not None:
             if "logger" in kw.keys():
-                cls._log_init_crash(err_logdict, exc, kw)
+                cls._log_init_crash(err_logdict, exc, kw["logger"])
                 kw["logger"].stop()
             if "vstate" in kw.keys():
                 kw["vstate"].stop()
@@ -646,7 +656,12 @@ class ValidationSession:
         return obj
 
     @classmethod
-    def _log_init_crash(cls, err_logdict, exc, kw):
+    def _log_init_crash(
+        cls,
+        err_logdict: dict[str, str | dict],
+        exc: Exception,
+        logger: S3TSVWriter
+    ) -> None:
         """
         Attempt to write fact of unhandled exception during init to S3
         log. If the logging attempt itself fails (for instance, because of
@@ -655,15 +670,15 @@ class ValidationSession:
         """
         try:
             err_logdict["message"]["exception"] = f"{exc}: {type(exc)}"
-            kw["logger"].write(**err_logdict)
-            kw["logger"].write(
+            logger.write(**err_logdict)
+            logger.write(
                 category="shutdown",
                 ref="self",
                 status="error",
                 message="shutting down due to initialization failure"
             )
-            kw["logger"].write(category="stop", ref="self", status="ok")
-            kw["logger"].stop()
+            logger.write(category="stop", ref="self", status="ok")
+            logger.stop()
         except Exception as log_exc:
             log_report = (
                 "Encountered exception while attempting to write init crash "
@@ -717,7 +732,7 @@ class ValidationSession:
             self.last_lock_timestamp = time.time()
         return True, None
 
-    def release_lock(self):
+    def release_lock(self) -> None:
         """
         Release the lock object if held. Does nothing if lock is not held.
         """
@@ -727,13 +742,13 @@ class ValidationSession:
         if lock_status == LockStatus.HELD:
             control_bucket.rm(names.lock_key("validator"))
 
-    def start(self, *, restart=False):
+    def start(self, *, restart: bool = False) -> None:
         print("starting validation session", flush=True)
         if self.running and restart is False:
             raise ValueError(
                 "Already running. Pass 'restart=True' to restart."
             )
-        elif self.crashed is True and restart is False:
+        if self.crashed is True and restart is False:
             raise ValueError(
                 "Pipeline crashed. Pass 'restart=True' to restart."
             )
@@ -769,7 +784,7 @@ class ValidationSession:
             self._pipe_exec, self._pipe_loop
         )
 
-    def _pipe_loop_inner(self, _sigdict: dict):
+    def _pipe_loop_inner(self, _sigdict: dict) -> bool:
         """
         Subroutine of `_pipe_loop()` split to more nicely live inside a
         try-except statement. Under no circumstances should you invoke this
@@ -817,7 +832,7 @@ class ValidationSession:
             time.sleep(self.loop_rate)
         return False
 
-    def _log_exit(self):
+    def _log_exit(self) -> None:
         """
         Log the fact that we are in the process of gracefully shutting down
         in response to 'normal' pipeline events -- changes
@@ -835,7 +850,7 @@ class ValidationSession:
         )
 
     @staticmethod
-    def _send_sqs_report(report: ValidationSQSReport):
+    def _send_sqs_report(report: ValidationSQSReport) -> None:
         sqs = make_boto_client('sqs', verify=False)
         sqs.send_message(
             QueueUrl=conf.VAL_PIPE_SQS_QUEUE_URL,
@@ -870,7 +885,7 @@ class ValidationSession:
             msg["validation_result"] = "success"
         return msg
 
-    def _log_termination(self):
+    def _log_termination(self) -> None:
         """
         Log the fact that we have exited due to commanded serverside
         termination. In normal operation, this will never happen,
@@ -886,7 +901,7 @@ class ValidationSession:
             }
         )
 
-    def _log_crash(self, ex: BaseException):
+    def _log_crash(self, ex: BaseException) -> None:
         """
         Log the fact that we are exiting due to an unhandled exception. This
         should not be called in response to simple validation failures (even
@@ -906,7 +921,7 @@ class ValidationSession:
             }
         )
 
-    def _cleanup(self):
+    def _cleanup(self) -> None:
         """
         Cleans up temp resources. Currently just releases the lock. Can be
         used as an extension point if the pipeline ever ends up using
@@ -914,7 +929,7 @@ class ValidationSession:
         """
         self.release_lock()
 
-    def _log_stop(self):
+    def _log_stop(self) -> None:
         """
         Log the fact that we have stopped, regardless of reason. _Rationale_
         for stopping should be separately logged. This should be the last log
@@ -923,7 +938,7 @@ class ValidationSession:
         """
         self.logger.write(category="stop", ref="self", status="ok")
 
-    def _pipe_loop(self, _sigdict: dict, _id: int = 0):
+    def _pipe_loop(self, _sigdict: dict, _id: int = 0) -> None:
         """
         Main loop for validation pipeline. Should only be invoked via
         `ValidationSession.start()`; may otherwise exhibit a variety of
@@ -996,7 +1011,7 @@ class ValidationSession:
     """
     lock_staleness_threshold: int = 3600
     """
-    Default staleness threshold for locks (can be overridden by a value in 
+    Default staleness threshold for locks (can be overridden by a value in
     fetched netconf_params).
     """
     last_lock_timestamp: float | None = None

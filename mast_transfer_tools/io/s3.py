@@ -69,7 +69,7 @@ class S3Reader(BufferedIOBase):
         *,
         chunk_size: int = 1024*1024,
         cache_dir: str | Path | None = None,
-    ):
+    ) -> None:
         super().__init__()
 
         self._bucket = bucket

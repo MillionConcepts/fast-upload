@@ -171,7 +171,7 @@ ExplicitNull = ExplicitNullT()
 class DecodingError(ValueError):
     """Represents failure to decode a value from the YAML representation."""
 
-    def __init__(self, lpath: str, message: str):
+    def __init__(self, lpath: str, message: str) -> None:
         # We define __init__ solely to enforce that all callers pass
         # exactly two arguments.
         super().__init__(lpath, message)

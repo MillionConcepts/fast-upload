@@ -27,6 +27,6 @@ def validation_failure_message(failures: dict) -> dict[str, str | dict]:
     }
 
 
-def success_msg():
+def success_msg() -> dict[str, str | None]:
     """File existed and matched definition in label."""
     return {"status": "ok", "message": None}

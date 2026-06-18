@@ -104,43 +104,13 @@ module = [
 ]
 ignore_missing_imports = true
 
-[[tool.mypy.overrides]]
-# Modules in our code that currently should not be type-checked at all.
-module = [
-    # TEMPORARY: these files and directories are still in flux
-    "mast_transfer_tools.describe.*",
-    "mast_transfer_tools.io.*",
-    "mast_transfer_tools.lambda_.*",
-    "mast_transfer_tools.s3log.*",
-    "mast_transfer_tools.server.*",
-    "mast_transfer_tools.upload.client",
-    "mast_transfer_tools.upload.cognito",
-    "mast_transfer_tools.validation.asdf",
-    "pipe_entry",
-]
-ignore_errors = true
-
-
 ## Lint configuration
 [tool.ruff]
 # These need to agree with .editorconfig
-line-length = 80
+line-length = 79
 indent-width = 4
 # This needs to agree with the requires-python line
 target-version = "py311"
-# Files that should not be linted.  Put a short explanatory comment
-# above each.
-exclude = [
-    # TEMPORARY: these files and directories are still in flux
-    "mast_transfer_tools/describe",
-    "mast_transfer_tools/io",
-    "mast_transfer_tools/lambda_",
-    "mast_transfer_tools/s3log",
-    "mast_transfer_tools/server",
-    "mast_transfer_tools/upload/client.py",
-    "mast_transfer_tools/upload/cognito.py",
-    "pipe_entry.py"
-]
 
 [tool.ruff.lint]
 # There are lots more checks ruff can do but this is a sensible default.
@@ -186,6 +156,3 @@ ignore = [
     # stylistic rule (line length in docstrings) lumped in with W
     "W505",
 ]
-
-[tool.ruff.lint.flake8-annotations]
-mypy-init-return = true

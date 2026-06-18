@@ -7,7 +7,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 import secrets
 import urllib.parse
 import threading
-from typing import NotRequired, Required, TypedDict, cast
+from typing import NotRequired, Required, TypedDict, cast, Any
 import webbrowser
 
 
@@ -28,6 +28,7 @@ class CognitoTokens(TypedDict):
     exchange. Refresh responses may omit refresh_token, but the manager should
     preserve the existing one.
     """
+
     id_token: str
     access_token: str
     refresh_token: str
@@ -43,6 +44,7 @@ class CognitoTokenRefreshResponse(TypedDict, total=False):
     Cognito may return only new id/access tokens. If refresh-token rotation is
     enabled, it may also return a new refresh_token.
     """
+
     id_token: str
     access_token: str
     refresh_token: str
@@ -79,6 +81,7 @@ class AWSCredentials(TypedDict):
     """
     Normalized credentials exposed by manager.
     """
+
     access_key_id: str
     secret_access_key: str
     session_token: str
@@ -89,6 +92,7 @@ class IdentityPoolCredentials(TypedDict):
     """
     Raw Credentials member from get_credentials_for_identity.
     """
+
     AccessKeyId: str
     SecretKey: str
     SessionToken: str
@@ -99,6 +103,7 @@ class IdentityPoolCredentialsResponse(TypedDict):
     """
     Raw response from Cognito Identity get_credentials_for_identity.
     """
+
     IdentityId: str
     Credentials: IdentityPoolCredentials
 
@@ -108,6 +113,7 @@ class RefreshableCredentialMetadata(TypedDict):
     Shape required by botocore.credentials.RefreshableCredentials.
     Yes, the key names are different from boto3 default.
     """
+
     access_key: str
     secret_key: str
     token: str
@@ -132,7 +138,14 @@ class OAuthCallbackResult:
 
 
 class OAuthCallbackServer(HTTPServer):
-    def __init__(self, server_address, handler_class):
+    def __init__(
+        self,
+        server_address: (
+            tuple[str | bytes | bytearray, int]
+            | tuple[str | bytes | bytearray, int, int, int]
+        ),
+        handler_class: Any,
+    ) -> None:
         super().__init__(server_address, handler_class)
         self.result = OAuthCallbackResult()
 
@@ -142,7 +155,7 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
 
     server: OAuthCallbackServer
 
-    def do_GET(self):
+    def do_GET(self) -> None:
         parsed_path = urllib.parse.urlparse(self.path)
         params = urllib.parse.parse_qs(parsed_path.query)
         self.server.result.state = params.get("state", [None])[0]
@@ -177,7 +190,7 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(b"Authorization failed. You can close this window.")
 
-    def log_message(self, fmt, *args):
+    def log_message(self, fmt: Any, *args: Any) -> None:
         pass
 
 
@@ -190,7 +203,7 @@ class CognitoOAuthAuthenticator:
         client_id: str,
         redirect_uri: str = "http://localhost:3000",
         region: str = "us-east-1",
-    ):
+    ) -> None:
         """
         Initialize the Cognito OAuth authenticator
 
@@ -220,12 +233,14 @@ class CognitoOAuthAuthenticator:
         """
         code_verifier = base64.urlsafe_b64encode(
             secrets.token_bytes(32)
-        ).decode('utf-8')
-        code_verifier = code_verifier.rstrip('=')
+        ).decode("utf-8")
+        code_verifier = code_verifier.rstrip("=")
 
-        code_challenge = hashlib.sha256(code_verifier.encode('utf-8')).digest()
-        code_challenge = base64.urlsafe_b64encode(code_challenge).decode('utf-8')
-        code_challenge = code_challenge.rstrip('=')
+        code_challenge = hashlib.sha256(code_verifier.encode("utf-8")).digest()
+        code_challenge = base64.urlsafe_b64encode(code_challenge).decode(
+            "utf-8"
+        )
+        code_challenge = code_challenge.rstrip("=")
 
         return code_verifier, code_challenge
 
@@ -248,8 +263,9 @@ class CognitoOAuthAuthenticator:
             - Cannot use alternate ports without updating Cognito settings
         """
         try:
-            server = OAuthCallbackServer(('127.0.0.1', port), OAuthCallbackHandler)
-            return server
+            return OAuthCallbackServer(
+                ("127.0.0.1", port), OAuthCallbackHandler
+            )
         except OSError as e:
             # Address already in use (macOS/Linux)
             if e.errno == 48 or e.errno == 98:
@@ -260,10 +276,9 @@ class CognitoOAuthAuthenticator:
                     f"Callback URL configuration.\n"
                     f"      Current callback URL: {self.redirect_uri}"
                 ) from e
-            else:
-                raise ConnectionError(
-                    f"Failed to start local server on port {port}: {str(e)}"
-                ) from e
+            raise ConnectionError(
+                f"Failed to start local server on port {port}: {str(e)}"
+            ) from e
 
     def get_authorization_url(self, code_challenge: str, state: str) -> str:
         """
@@ -277,13 +292,13 @@ class CognitoOAuthAuthenticator:
             Authorization URL
         """
         params = {
-            'client_id': self.client_id,
-            'response_type': 'code',
-            'redirect_uri': self.redirect_uri,
-            'code_challenge': code_challenge,
-            'code_challenge_method': 'S256',
-            'state': state,
-            'scope': 'openid email'
+            "client_id": self.client_id,
+            "response_type": "code",
+            "redirect_uri": self.redirect_uri,
+            "code_challenge": code_challenge,
+            "code_challenge_method": "S256",
+            "state": state,
+            "scope": "openid email",
         }
 
         return (
@@ -317,9 +332,7 @@ class CognitoOAuthAuthenticator:
         return response.json()
 
     def exchange_code_for_tokens(
-        self,
-        authorization_code: str,
-        code_verifier: str
+        self, authorization_code: str, code_verifier: str
     ) -> CognitoTokens:
         """
         Exchange authorization code for access tokens
@@ -332,22 +345,27 @@ class CognitoOAuthAuthenticator:
             dict containing tokens (id_token, access_token, refresh_token)
         """
         data: TokenRequestBody = {
-            'grant_type': 'authorization_code',
-            'code': authorization_code,
-            'code_verifier': code_verifier,
-            'redirect_uri': self.redirect_uri
+            "grant_type": "authorization_code",
+            "code": authorization_code,
+            "code_verifier": code_verifier,
+            "redirect_uri": self.redirect_uri,
         }
 
         tokens = self._post_token_request(
-            data, failure_message="Token exchange failed",
+            data,
+            failure_message="Token exchange failed",
         )
 
         if "id_token" not in tokens:
             raise PermissionError("Token exchange response missing id_token")
         if "access_token" not in tokens:
-            raise PermissionError("Token exchange response missing access_token")
+            raise PermissionError(
+                "Token exchange response missing access_token"
+            )
         if "refresh_token" not in tokens:
-            raise PermissionError("Token exchange response missing refresh_token")
+            raise PermissionError(
+                "Token exchange response missing refresh_token"
+            )
 
         return cast(CognitoTokens, tokens)
 
@@ -387,7 +405,7 @@ class CognitoOAuthAuthenticator:
         code_verifier, code_challenge = self.generate_pkce_pair()
         state = secrets.token_urlsafe(32)
 
-        port = int(self.redirect_uri.split(':')[-1].split('/')[0])
+        port = int(self.redirect_uri.split(":")[-1].split("/")[0])
         server = self.start_local_server(port)
 
         server_thread = threading.Thread(target=server.handle_request)
@@ -456,8 +474,8 @@ class CognitoCredentialsManager:
         user_pool_id: str,
         region: str = "us-east-1",
         auth_tokens: CognitoTokens | None = None,
-        authenticator: CognitoOAuthAuthenticator | None = None
-    ):
+        authenticator: CognitoOAuthAuthenticator | None = None,
+    ) -> None:
         """
         Args:
             identity_pool_id: Cognito Identity Pool ID
@@ -489,7 +507,8 @@ class CognitoCredentialsManager:
         return f"cognito-idp.{self.region}.amazonaws.com/{self.user_pool_id}"
 
     def _id_token_expiring(
-        self, margin: timedelta = timedelta(minutes=5),
+        self,
+        margin: timedelta = timedelta(minutes=5),
     ) -> bool:
         """
         Is our id token less than `margin` from expiration (or already
@@ -502,7 +521,8 @@ class CognitoCredentialsManager:
         return _jwt_expiration(id_token) <= _now() + margin
 
     def _aws_credentials_expiring(
-        self, margin: timedelta = timedelta(minutes=5),
+        self,
+        margin: timedelta = timedelta(minutes=5),
     ) -> bool:
         """
         Are our AWS credentials less than `margin` from expiration (or already
@@ -514,7 +534,7 @@ class CognitoCredentialsManager:
 
         expiration = _require_aware_utc(
             self.creds_response["Credentials"]["Expiration"],
-            "Cognito Identity credentials expiration"
+            "Cognito Identity credentials expiration",
         )
 
         return expiration <= _now() + margin
@@ -583,9 +603,7 @@ class CognitoCredentialsManager:
             return self.auth_tokens
 
     def get_credentials(
-        self,
-        id_token: str | None = None,
-        role_suffix: str | None = None
+        self, id_token: str | None = None, role_suffix: str | None = None
     ) -> AWSCredentials:
         """
         Exchange Cognito ID token for AWS credentials using Identity Pool.
@@ -610,7 +628,7 @@ class CognitoCredentialsManager:
                 )
 
             if id_token is None:
-                id_token = self.auth_tokens['id_token']
+                id_token = self.auth_tokens["id_token"]
 
             if role_suffix is not None:
                 self.last_role_suffix = role_suffix
@@ -628,22 +646,22 @@ class CognitoCredentialsManager:
             try:
                 identity_response = cog_client.get_id(
                     IdentityPoolId=self.identity_pool_id,
-                    Logins={self._logins_key: id_token}
+                    Logins={self._logins_key: id_token},
                 )
                 self.creds_response = cog_client.get_credentials_for_identity(
-                    IdentityId=identity_response['IdentityId'],
+                    IdentityId=identity_response["IdentityId"],
                     Logins={self._logins_key: id_token},
-                    CustomRoleArn=role
+                    CustomRoleArn=role,
                 )
-                creds = self.creds_response['Credentials']
+                creds = self.creds_response["Credentials"]
                 self.credentials = {
-                    'access_key_id': creds['AccessKeyId'],
-                    'secret_access_key': creds['SecretKey'],
-                    'session_token': creds['SessionToken'],
-                    'expiration': creds['Expiration'].isoformat()
+                    "access_key_id": creds["AccessKeyId"],
+                    "secret_access_key": creds["SecretKey"],
+                    "session_token": creds["SessionToken"],
+                    "expiration": creds["Expiration"].isoformat(),
                 }
             except ClientError as e:
-                raise ConnectionError(f"Failed to get AWS credentials") from e
+                raise ConnectionError("Failed to get AWS credentials") from e
 
             return self.credentials
 
@@ -729,10 +747,10 @@ class CognitoCredentialsManager:
         """
         self.ensure_credentials(role_suffix=role_suffix)
         return boto3.Session(
-            aws_access_key_id=self.credentials['access_key_id'],
-            aws_secret_access_key=self.credentials['secret_access_key'],
-            aws_session_token=self.credentials['session_token'],
-            region_name=self.region
+            aws_access_key_id=self.credentials["access_key_id"],
+            aws_secret_access_key=self.credentials["secret_access_key"],
+            aws_session_token=self.credentials["session_token"],
+            region_name=self.region,
         )
 
 
@@ -757,20 +775,19 @@ def decode_jwt_payload(jwt_token: str) -> JwtPayload:
 
 
 def get_authenticated_cognito_manager(
-    cogconf: CognitoConfiguration
+    cogconf: CognitoConfiguration,
 ) -> CognitoCredentialsManager:
     authenticator = CognitoOAuthAuthenticator(
         cognito_domain=cogconf.domain,
         client_id=cogconf.client_id,
         redirect_uri=cogconf.redirect_uri,
-        region=cogconf.region
+        region=cogconf.region,
     )
     auth_tokens = authenticator.authenticate()
-    manager = CognitoCredentialsManager(
+    return CognitoCredentialsManager(
         cogconf.identity_pool_id,
         cogconf.user_pool_id,
         region=cogconf.region,
         auth_tokens=auth_tokens,
-        authenticator=authenticator
+        authenticator=authenticator,
     )
-    return manager

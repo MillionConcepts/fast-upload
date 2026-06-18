@@ -33,7 +33,7 @@ class MockBucket(Bucket):  # type:ignore[misc] # until hostess is typed
         session: Any = None,
         config: Any = None,
         n_threads: int = 4,
-    ):
+    ) -> None:
         # intentionally does not call Bucket.__init__
 
         if client is not None:
@@ -289,7 +289,7 @@ class FakeReadOnlyDataBucket(MockBucket):
         session: Any = None,
         config: Any = None,
         n_threads: int = 4,
-    ):
+    ) -> None:
         super().__init__(
             bucket_name,
             client=client,
@@ -413,7 +413,7 @@ class FakeMutableBucket(MockBucket):
         session: Any = None,
         config: Any = None,
         n_threads: int = 4,
-    ):
+    ) -> None:
         super().__init__(
             bucket_name,
             client=client,
