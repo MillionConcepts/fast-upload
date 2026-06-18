@@ -18,18 +18,18 @@ def normalize_dt_rep(dt: np.dtype) -> str:
     byteorder, repeated elements, dimensionality, etc. Will not produce
     satisfying results on dtypes with multiple fields.
     """
-    if dt == np.dtype('bool'):
+    if dt == np.dtype("bool"):
         # bool is always 1 byte wide and does not require
         # disambiguation; however, 'b' by itself means _byte_ (i8);
         # you have to say 'b1' for bool
-        return 'b1'
+        return "b1"
     # the 'object' type denotes a variable-length object or a pointer
     # to a variable-length object; may not be consistently sized across
     # implementations and architectures
-    if dt == np.dtype('O'):
-        return 'O'
+    if dt == np.dtype("O"):
+        return "O"
     # for timestamp and duration types we need to preserve the precision
-    if dt.base.kind in ('M', 'm'):
+    if dt.base.kind in ("M", "m"):
         unit, count = np.datetime_data(dt.base)
         assert count >= 1
         if count == 1:
@@ -37,11 +37,11 @@ def normalize_dt_rep(dt: np.dtype) -> str:
         else:
             return f"{dt.base.kind}{dt.base.itemsize}[{count}{unit}]"
     # treat semi-deprecated 'S' character string type as alias for 'V'
-    if dt.base.kind == 'S':
+    if dt.base.kind == "S":
         return f"V{dt.base.itemsize}"
     # also treat 'U' as alias for 'V' but correct for astropy having altered
     # the itemsize because it uses UTF-32 (yes, -32) internally
-    if dt.base.kind == 'U':
+    if dt.base.kind == "U":
         return f"V{dt.base.itemsize // 4}"
 
     return f"{dt.base.kind}{dt.base.itemsize}"
@@ -62,20 +62,20 @@ def check_column(name: str, dtype: np.dtype, col: ColumnObject) -> list[str]:
     if isinstance(c_name, re.Pattern):
         if not c_name.fullmatch(name):
             differences.append(
-                f"wrong name: {name!r} doesn't match {repr_rx(c_name)}")
+                f"wrong name: {name!r} doesn't match {repr_rx(c_name)}"
+            )
     else:
         if c_name != name:
-            differences.append(f"wrong name: expected {c_name!r}, got {name!r}")
+            differences.append(
+                f"wrong name: expected {c_name!r}, got {name!r}"
+            )
 
     norm_dt = normalize_dt_rep(dtype)
     if norm_dt != col.dtype:
-        differences.append(
-            f"wrong dtype: expected {col.dtype}, got {norm_dt}"
-        )
+        differences.append(f"wrong dtype: expected {col.dtype}, got {norm_dt}")
     if dtype.ndim != col.ndim:
         differences.append(
-            f"wrong item dimensionality: expected {col.ndim}, "
-            f"got {dtype.ndim}"
+            f"wrong item dimensionality: expected {col.ndim}, got {dtype.ndim}"
         )
 
     return differences
@@ -125,10 +125,7 @@ def check_schema(dtype: np.dtype, spec: DataObject) -> dict[str, list[str]]:
                 errors[field_ix] = differences
 
             field_ix += 1
-            if (
-                field_ix >= len(names)
-                or not column.repeated
-            ):
+            if field_ix >= len(names) or not column.repeated:
                 break
             assert isinstance(column.name, re.Pattern)
             if not column.name.fullmatch(names[field_ix]):
@@ -186,13 +183,14 @@ def check_meta(
             f" expected {type(spec.value)}, got {type(val)}"
         )
 
-    if (
-        val != spec.value
-        and not (isinstance(val, float)
-                 and isinstance(spec.value, float)
-                 and isnan(val)
-                 and isnan(spec.value))
+    if val != spec.value and not (
+        isinstance(val, float)
+        and isinstance(spec.value, float)
+        and isnan(val)
+        and isnan(spec.value)
     ):
-        return f"incorrect metadata value: expected {spec.value!r}, got {val!r}"
+        return (
+            f"incorrect metadata value: expected {spec.value!r}, got {val!r}"
+        )
 
     return None

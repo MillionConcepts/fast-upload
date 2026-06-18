@@ -1,6 +1,7 @@
 """
 Validation of data files against their labels.
 """
+
 from functools import cache
 from importlib import import_module
 from pathlib import Path
@@ -9,7 +10,8 @@ from typing import Callable, Any
 from hostess.aws.s3 import Bucket
 
 from mast_transfer_tools.labels import (
-    Filetype, STANDARDS_SUPPORTING_DATA_VALIDATION
+    Filetype,
+    STANDARDS_SUPPORTING_DATA_VALIDATION,
 )
 
 
@@ -71,10 +73,7 @@ def object_checkers_for(
 
 
 def check_data(
-    data: Any,
-    ft: Filetype,
-    *,
-    object_check_hook: bool = True
+    data: Any, ft: Filetype, *, object_check_hook: bool = True
 ) -> dict[str, dict]:
     failures = {}
 
@@ -101,7 +100,7 @@ def validate(
     path: str | Path,
     *,
     bucket: Bucket | str | None = None,
-    object_check_hook: bool = True
+    object_check_hook: bool = True,
 ) -> dict[str, list[str]]:
     """
     Check whether the file at PATH is accurately described by the filetype
@@ -118,8 +117,7 @@ def validate(
         failures = check_data(data, ft, object_check_hook=object_check_hook)
         if failures:
             failures = {
-                f"{path}: at {key}:": value
-                for key, value in failures.items()
+                f"{path}: at {key}:": value for key, value in failures.items()
             }
         return failures
     finally:

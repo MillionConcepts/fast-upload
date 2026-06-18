@@ -31,7 +31,9 @@ SCHEMA_BAILOUT_MESSAGE = (
 )
 
 
-def check_schema(file: pq.ParquetFile, spec: DataObject) -> dict[str, list[str]]:
+def check_schema(
+    file: pq.ParquetFile, spec: DataObject
+) -> dict[str, list[str]]:
     """
     Compare the schema of FILE to the schema described by SPEC.
     Return a semi-structured description of the differences.
@@ -75,16 +77,20 @@ def check_schema(file: pq.ParquetFile, spec: DataObject) -> dict[str, list[str]]
             phystype = file.schema.column(i).physical_type
             if phystype == "INT96":
                 return {
-                    "base": [f"Column {name} uses the deprecated INT96 "
-                    f"primitive type but does not have a datetime logical "
-                    f"type. {SCHEMA_BAILOUT_MESSAGE}"]
+                    "base": [
+                        f"Column {name} uses the deprecated INT96 "
+                        f"primitive type but does not have a datetime logical "
+                        f"type. {SCHEMA_BAILOUT_MESSAGE}"
+                    ]
                 }
-            if phystype == 'FIXED_LEN_BYTE_ARRAY':
+            if phystype == "FIXED_LEN_BYTE_ARRAY":
                 dtype.append((name, f"V{ftype.byte_width}"))
             elif phystype not in PARQUET_PHYSICAL_TYPE_MAP.keys():
                 return {
-                    "base": [f"unknown physical type {phystype} on column "
-                    f"{name}. {SCHEMA_BAILOUT_MESSAGE}"]
+                    "base": [
+                        f"unknown physical type {phystype} on column "
+                        f"{name}. {SCHEMA_BAILOUT_MESSAGE}"
+                    ]
                 }
             elif file.schema.column(i).name != file.schema.column(i).path:
                 # variable-length 'container' types (like lists) whose
@@ -101,7 +107,10 @@ def check_schema(file: pq.ParquetFile, spec: DataObject) -> dict[str, list[str]]
 PARQUET_METADATA_TRUE_RE = re.compile(r"(?i)\A(?:t(?:rue)?|yes|on|1)\Z")
 PARQUET_METADATA_FALSE_RE = re.compile(r"(?i)\A(?:f(?:alse)?|no|off|0)\Z")
 
-def convert_meta(raw_val: str, spec: ObjectMetadata) -> str | bool | float | int:
+
+def convert_meta(
+    raw_val: str, spec: ObjectMetadata
+) -> str | bool | float | int:
     if isinstance(spec.value, bool):
         if PARQUET_METADATA_TRUE_RE.fullmatch(raw_val):
             return True
@@ -131,8 +140,7 @@ def check_meta(file: pq.ParquetFile, spec: DataObject) -> dict[str, list[str]]:
     file_meta = file.metadata.metadata
     if file_meta is not None:
         user_meta = {
-            k.decode("utf-8"): v.decode("utf-8")
-            for k, v in file_meta.items()
+            k.decode("utf-8"): v.decode("utf-8") for k, v in file_meta.items()
         }
     else:
         user_meta = {}
@@ -155,9 +163,7 @@ def check_meta(file: pq.ParquetFile, spec: DataObject) -> dict[str, list[str]]:
     return failures
 
 
-def check_file(
-    file: pq.ParquetFile, spec: Filetype
-) -> dict[str, list[str]]:
+def check_file(file: pq.ParquetFile, spec: Filetype) -> dict[str, list[str]]:
     """
     Compare FILE to the expectations described by SPEC.
     Return a semi-structured description of the differences.

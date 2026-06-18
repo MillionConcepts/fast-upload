@@ -123,7 +123,7 @@ def object_check_hook_option(fn: Callable[..., None]) -> Callable[..., None]:
         help=(
             "Run custom validation_options.object_check_hook modules defined "
             "in the label."
-        )
+        ),
     )(fn)
 
 
@@ -222,15 +222,15 @@ def populate_label(
                 unmatched.append(fpath)
             case 1:
                 ft_name = ftypes[0].lpath
-                ft_name = ft_name[ft_name.rfind('/') + 1:]
+                ft_name = ft_name[ft_name.rfind("/") + 1 :]
                 if ft_name in filetypes.keys():
                     targets[ft_name].append(fpath)
             case _:
                 ft_names = []
                 for ft in ftypes:
                     ft_name = ft.lpath
-                    ft_names.append(ft_name[ft_name.rfind('/') + 1:])
-                overmatched[fpath] = ', '.join(sorted(ftypes))
+                    ft_names.append(ft_name[ft_name.rfind("/") + 1 :])
+                overmatched[fpath] = ", ".join(sorted(ftypes))
 
     fatal_errors = False
     if len(targets) == 0:
@@ -261,7 +261,6 @@ def populate_label(
     if fatal_errors:
         sys.exit(1)
 
-
     new_label = deepcopy(parsed_label)
     for ft_name, ft in filetypes.items():
         matching_files = targets[ft_name]
@@ -291,7 +290,9 @@ def populate_label(
                 desc = FileDescription(fn=f, standard=ft.standard)
                 with warnings.catch_warnings(record=True) as warning_trap:
                     try:
-                        desc.objects = description_module.describe_file(f, bucket)
+                        desc.objects = description_module.describe_file(
+                            f, bucket
+                        )
                     except Exception as ex:
                         # for the exceptions that wind up here, the exception
                         # type doesn't add to the error message
@@ -309,11 +310,13 @@ def populate_label(
             )
             for f in warned_descs:
                 for w in f.warnings:
-                    if hasattr(w, 'message'):
+                    if hasattr(w, "message"):
                         w_message = str(w.message)
                     else:
                         w_message = str(w)
-                    rprint(f"  [yellow]warning:[/yellow] [blue]{f.fn}[/blue]: {w_message}")
+                    rprint(
+                        f"  [yellow]warning:[/yellow] [blue]{f.fn}[/blue]: {w_message}"
+                    )
         failed_descs = [d for d in descriptions if len(d.errors) > 0]
         if len(failed_descs) > 0:
             rprint(
@@ -323,9 +326,10 @@ def populate_label(
                 for e in f.errors:
                     rprint(f"  [red]error:[/red] [blue]{f.fn}[/blue]: {e}")
             if len(warned_descs) > 0:
-                rprint("Warnings above may explain the problem in more detail.")
+                rprint(
+                    "Warnings above may explain the problem in more detail."
+                )
             continue
-
 
         objs, unification_failure = description_module.unify_descriptions(
             descriptions
@@ -396,15 +400,15 @@ def report_filetypes(
                 unmatched.append(fpath)
             case 1:
                 ft_name = ftypes[0].lpath
-                ft_name = ft_name[ft_name.rfind('/') + 1:]
+                ft_name = ft_name[ft_name.rfind("/") + 1 :]
                 targets.append(fpath)
                 filetypes.append(ft_name)
             case _:
                 ft_names = []
                 for ft in ftypes:
                     ft_name = ft.lpath
-                    ft_names.append(ft_name[ft_name.rfind('/') + 1:])
-                overmatched[fpath] = ', '.join(sorted(ftypes))
+                    ft_names.append(ft_name[ft_name.rfind("/") + 1 :])
+                overmatched[fpath] = ", ".join(sorted(ftypes))
 
     fatal_errors = False
     if len(targets) == 0:
@@ -434,9 +438,9 @@ def report_filetypes(
     if fatal_errors:
         sys.exit(1)
 
-    pd.DataFrame(
-        {"path": targets, "filetypes": filetypes}
-    ).to_csv(output, index=False)
+    pd.DataFrame({"path": targets, "filetypes": filetypes}).to_csv(
+        output, index=False
+    )
 
 
 @main.command()
@@ -527,10 +531,7 @@ def validate(*, file: str, label: Path, object_check_hook: bool) -> None:
     parsed_label = Label.from_file(label)
     require_no_label_errors(parsed_label, label)
     msg, success = validate_chatty(
-        file,
-        parsed_label,
-        bucket_name,
-        object_check_hook=object_check_hook
+        file, parsed_label, bucket_name, object_check_hook=object_check_hook
     )
     if success:
         rprint("[green]Successfully validated.")
@@ -555,7 +556,7 @@ def validate_all(
     source: str,
     label: Path,
     index_file: Path | None = None,
-    object_check_hook: bool = True
+    object_check_hook: bool = True,
 ) -> None:
     """
     Validate all files under <source> against <label>.
@@ -640,7 +641,7 @@ def validate_all(
                     t,
                     parsed_label,
                     bucket_name,
-                    object_check_hook=object_check_hook
+                    object_check_hook=object_check_hook,
                 )
             )
             progress.update(task, advance=1)

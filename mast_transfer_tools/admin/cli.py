@@ -10,6 +10,7 @@ import sys
 
 import click
 
+
 @click.group(
     epilog="Use 'mast-upload <command> --help' for help on a specific command."
 )

@@ -57,10 +57,9 @@ SUPPORTED_DTYPE_NAMES = (
     "i4",  # 32-bit signed integer
     "i8",  # 64-bit signed integer
     "c8",  # 64-bit complex float or integer; implementation varies by format
-    "c16", # 128-bit complex float or integer; implementation varies by format
-    "O",   # catchall for variable-length or pointer to variable-length data
+    "c16",  # 128-bit complex float or integer; implementation varies by format
+    "O",  # catchall for variable-length or pointer to variable-length data
     "b1",  # boolean / logical ("b" by itself is equivalent to "i1")
-
     # presently we only support 64-bit timestamps (M) and timedeltas (m)
     # timestamps and timedeltas require a precision tag: Y(ears),
     # M(onths), W(eeks), D(ays), h(ours), m(inutes), s(econds), or
@@ -72,7 +71,6 @@ SUPPORTED_DTYPE_NAMES = (
     # numpy accepts μs as another name for us, but we don't.
     r"M8\[(?:[1-9][0-9]*)?(?:[YMWDhms]|[munpfa]s)\]",
     r"m8\[(?:[1-9][0-9]*)?(?:[YMWDhms]|[munpfa]s)\]",
-
     # catchall for fixed-width fields that are not interpretable as
     # another listed type. "n" must be specified, e.g.  "V5" for a
     # fixed-width 5-byte field.
@@ -80,9 +78,7 @@ SUPPORTED_DTYPE_NAMES = (
 )
 
 SUPPORTED_DTYPE_RE = re.compile(
-    r"\A(?:"
-    + "|".join(SUPPORTED_DTYPE_NAMES)
-    + r")\Z"
+    r"\A(?:" + "|".join(SUPPORTED_DTYPE_NAMES) + r")\Z"
 )
 
 
@@ -90,22 +86,21 @@ SUPPORTED_DTYPE_RE = re.compile(
 FITS_ARRAY_DTYPES = ("f8", "f4", "i8", "i4", "i2", "u8", "u4", "u2", "u1")
 FITS_TABLE_DTYPES = FITS_ARRAY_DTYPES + (
     r"V[1-9][0-9]*",
-    "c8", "c16", "O", "b1"
+    "c8",
+    "c16",
+    "O",
+    "b1",
 )
 
 FITS_ARRAY_DTYPE_RE = re.compile(
-    r"\A(?:"
-    + "|".join(FITS_ARRAY_DTYPES)
-    + r")\Z"
+    r"\A(?:" + "|".join(FITS_ARRAY_DTYPES) + r")\Z"
 )
 FITS_TABLE_DTYPE_RE = re.compile(
-    r"\A(?:"
-    + "|".join(FITS_TABLE_DTYPES)
-    + r")\Z"
+    r"\A(?:" + "|".join(FITS_TABLE_DTYPES) + r")\Z"
 )
 
 FITS_HDU_TYPES = ("primary", "image", "compimage", "bintable")
-FHT_FOR_ERROR = ', '.join(FITS_HDU_TYPES)
+FHT_FOR_ERROR = ", ".join(FITS_HDU_TYPES)
 
 
 # Parquet does not support complex numbers, and it supports only a
@@ -115,16 +110,12 @@ FHT_FOR_ERROR = ', '.join(FITS_HDU_TYPES)
 # 'M8[s]' coming from a Parquet file.  Similarly, numeric prefixes
 # (250us) get rescaled and erased on write.
 PARQUET_DTYPES = tuple(
-    dt for dt in SUPPORTED_DTYPE_NAMES if dt[0] not in ('c', 'M', 'm')
+    dt for dt in SUPPORTED_DTYPE_NAMES if dt[0] not in ("c", "M", "m")
 ) + (
     r"M8\[(?:D|[mun]s)\]",
     r"m8\[(?:s|[mun]s)\]",
 )
-PARQUET_DTYPE_RE = re.compile(
-    r"\A(?:"
-    + "|".join(PARQUET_DTYPES)
-    + r")\Z"
-)
+PARQUET_DTYPE_RE = re.compile(r"\A(?:" + "|".join(PARQUET_DTYPES) + r")\Z")
 
 
 # ASDF embeds python type ids
@@ -132,13 +123,13 @@ ASDF_TABLE_TYPES = {
     "numpy.ndarray",
     "astropy.table.table.table",
     "pyarrow.lib.table",
-    "pandas.dataframe"
+    "pandas.dataframe",
 }
 # pass a list, not a generator, so the scan finishes before the update begins
 ASDF_TABLE_TYPES.update([s.split(".")[-1] for s in ASDF_TABLE_TYPES])
 
-ASDF_TABLE_TYPES_FOR_ERROR = ', '.join(
-    sorted(ASDF_TABLE_TYPES, key=lambda t: ('.' in t, t))
+ASDF_TABLE_TYPES_FOR_ERROR = ", ".join(
+    sorted(ASDF_TABLE_TYPES, key=lambda t: ("." in t, t))
 )
 
 STANDARDS_SUPPORTING_DATA_VALIDATION = ("asdf", "fits", "parquet")
@@ -148,8 +139,7 @@ SSDV_FOR_ERROR = ", ".join(STANDARDS_SUPPORTING_DATA_VALIDATION)
 class TimeInfo(LabelElement):
     # Might be better to allow this to be None?
     delivery_start_date: date = special_field(
-        required = True,
-        default_factory = lambda: date(1900, 1, 1)
+        required=True, default_factory=lambda: date(1900, 1, 1)
     )
     observation_start_date: date | None = None
     observation_end_date: date | None = None
@@ -178,17 +168,17 @@ class Contacts(LabelElement):
         # biggest difference is that we permit arbitrary Unicode letters
         # and digits on the left-hand side of the @.
 
-        if '@' not in addr:
+        if "@" not in addr:
             return f"{addr!r} has no @domain component"
 
         m = cls._EMAIL_LHS_RE.match(addr)
         if m is None:
             return f"{addr!r} has forbidden characters in the user@ part"
 
-        domain = addr[m.end():]
-        if '.' not in domain:
+        domain = addr[m.end() :]
+        if "." not in domain:
             return f"{addr!r} doesn't end with a fully qualified domain name"
-        if '@' in domain:
+        if "@" in domain:
             return f"{addr!r} contains too many @-signs"
 
         # NOTE: more thorough checks of the domain component are difficult
@@ -245,9 +235,9 @@ class ColumnObject(LabelElement):
     name_regex: bool = False
     ndim: int = 0
     name: str | re.Pattern[str] = special_field(
-        required = True,
-        default = "<name missing>",
-        decode_with_spec = decode_columnobject_name,
+        required=True,
+        default="<name missing>",
+        decode_with_spec=decode_columnobject_name,
     )
     dtype: str = special_field(required=True, default="i4")
 
@@ -298,10 +288,7 @@ class ObjectMetadata(LabelElement):
         lp = "" if lpath == "/" else lpath
 
         if spec["index"] is not None:
-            errors.append((
-                f"{lp}/index",
-                "is only permitted for FITS files"
-            ))
+            errors.append((f"{lp}/index", "is only permitted for FITS files"))
         return errors
 
 
@@ -311,10 +298,12 @@ class ASDFObjectMetadata(ObjectMetadata):
         cls, spec: dict[str, Any], lpath: str
     ) -> list[tuple[str, str]]:
         errors = super()._validate_label(spec, lpath)
-        if spec['value'] is not None or spec['objtype'] is not None:
+        if spec["value"] is not None or spec["objtype"] is not None:
             errors.append(
-                (lpath,
-                 "per-object metadata constraints are not supported for ASDF")
+                (
+                    lpath,
+                    "per-object metadata constraints are not supported for ASDF",
+                )
             )
         return errors
 
@@ -337,8 +326,7 @@ def decode_dataobject_name(
     Decode DataObject.name as string(s) or regex(es) depending on the
     name_regex and repeated flags.
     """
-    decoder: Callable[[Any, str], str] | \
-             Callable[[Any, str], re.Pattern[str]]
+    decoder: Callable[[Any, str], str] | Callable[[Any, str], re.Pattern[str]]
 
     if spec["name_regex"] or spec["repeated"]:
         decoder = decode_as_regex
@@ -353,15 +341,11 @@ def decode_dataobject_name(
 
 class DataObject(LabelElement):
     objtype: str | None = None
-    name: (
-        str
-        | list[str]
-        | re.Pattern[str]
-        | list[re.Pattern[str]]
-        | None
-    ) = special_field(
-        default = None,
-        decode_with_spec = decode_dataobject_name,
+    name: str | list[str] | re.Pattern[str] | list[re.Pattern[str]] | None = (
+        special_field(
+            default=None,
+            decode_with_spec=decode_dataobject_name,
+        )
     )
     schema: list[ColumnObject]
     name_regex: bool = False
@@ -376,8 +360,10 @@ class DataObject(LabelElement):
         | ExplicitNullT
         | str
         | list[str | int | float | bool | ExplicitNullT]
-        | dict[str | int | bool | ExplicitNullT,
-               str | int | float | bool | ExplicitNullT]
+        | dict[
+            str | int | bool | ExplicitNullT,
+            str | int | float | bool | ExplicitNullT,
+        ]
         | None
     ) = None
     value_regex: bool = False
@@ -398,17 +384,18 @@ class DataObject(LabelElement):
         assert isinstance(schema, list)
         if schema != []:
             if dtype is not None or ndim is not None:
-                errors.append((
-                    f"{lp}/schema",
-                    "may not be defined along with ndim"
-                    " and/or dtype (this would mean that the object both"
-                    " has and does not have a multi-field data type)"
-                ))
+                errors.append(
+                    (
+                        f"{lp}/schema",
+                        "may not be defined along with ndim"
+                        " and/or dtype (this would mean that the object both"
+                        " has and does not have a multi-field data type)",
+                    )
+                )
         if dtype is not None and not SUPPORTED_DTYPE_RE.fullmatch(dtype):
-            errors.append((
-                f"{lp}/dtype",
-                f"{dtype!r} is not a supported data type"
-            ))
+            errors.append(
+                (f"{lp}/dtype", f"{dtype!r} is not a supported data type")
+            )
 
         return errors
 
@@ -432,7 +419,7 @@ class ASDFDataObject(DataObject):
     # that fails type-checking because "dict is invariant".  I used to
     # understand what that meant :-/
     metadata: dict[str, ObjectMetadata] = special_field(
-        decode_value = partial(decode_as_element, element=ASDFObjectMetadata)
+        decode_value=partial(decode_as_element, element=ASDFObjectMetadata)
     )
 
     @classmethod
@@ -443,54 +430,61 @@ class ASDFDataObject(DataObject):
         lp = "" if lpath == "/" else lpath
 
         if spec["name"] is None:
-            errors.append((
-                f"{lp}/name",
-                "ASDF data objects must have names"
-            ))
+            errors.append((f"{lp}/name", "ASDF data objects must have names"))
 
         if spec["value"] is not None and (
             spec["ndim"] is not None
             or spec["dtype"] is not None
             or spec["schema"] != []
         ):
-            errors.append((
-                f"{lp}/value",
-                "may not be defined along with ndim, dtype, or schema"
-                " (this would mean that the object both is and is not"
-                " table- or array-like)"
-            ))
+            errors.append(
+                (
+                    f"{lp}/value",
+                    "may not be defined along with ndim, dtype, or schema"
+                    " (this would mean that the object both is and is not"
+                    " table- or array-like)",
+                )
+            )
 
         if (objtype := spec["objtype"]) is not None:
             objtype = objtype.lower()
             spec["objtype"] = objtype
             if not all(str.isidentifier(lbl) for lbl in objtype.split(".")):
-                errors.append((
-                    f"{lp}/objtype",
-                    f"for ASDF objects, must be a valid Python type name;"
-                    f" {objtype!r} is not valid"
-                ))
+                errors.append(
+                    (
+                        f"{lp}/objtype",
+                        f"for ASDF objects, must be a valid Python type name;"
+                        f" {objtype!r} is not valid",
+                    )
+                )
 
             if objtype not in ASDF_TABLE_TYPES and spec["schema"] != []:
-                errors.append((
-                    f"{lp}/schema",
-                    f"can only be defined for ASDF objects of types"
-                    f" {ASDF_TABLE_TYPES_FOR_ERROR}; not for {objtype!r}"
-                ))
+                errors.append(
+                    (
+                        f"{lp}/schema",
+                        f"can only be defined for ASDF objects of types"
+                        f" {ASDF_TABLE_TYPES_FOR_ERROR}; not for {objtype!r}",
+                    )
+                )
 
             # TODO, maybe: more precise rule for what is array-like
             if "array" not in objtype:
                 if spec["ndim"] is not None:
-                    errors.append((
-                        f"{lp}/ndim",
-                        f"can only be defined for array-like objects;"
-                        f" not for {objtype!r}"
-                    ))
+                    errors.append(
+                        (
+                            f"{lp}/ndim",
+                            f"can only be defined for array-like objects;"
+                            f" not for {objtype!r}",
+                        )
+                    )
                 if spec["dtype"] is not None:
-                    errors.append((
-                        f"{lp}/dtype",
-                        f"can only be defined for array-like objects;"
-                        f" not for {objtype!r}"
-                    ))
+                    errors.append(
+                        (
+                            f"{lp}/dtype",
+                            f"can only be defined for array-like objects;"
+                            f" not for {objtype!r}",
+                        )
+                    )
 
         else:  # objtype is None
             errors.append((f"{lp}/objtype", "must be defined for ASDF files"))
@@ -501,16 +495,20 @@ class ASDFDataObject(DataObject):
 class FITSDataObject(DataObject):
     # see notes in ASDFDataObject
     metadata: dict[str, ObjectMetadata] = special_field(
-        decode_value = partial(
+        decode_value=partial(
             decode_as_dict,
             decode_kv_key=decode_as_str,
-            decode_kv_val=partial(decode_as_element, element=FITSObjectMetadata)
+            decode_kv_val=partial(
+                decode_as_element, element=FITSObjectMetadata
+            ),
         )
     )
     schema: list[ColumnObject] = special_field(
-        decode_value = partial(
+        decode_value=partial(
             decode_as_list,
-            decode_element=partial(decode_as_element, element=FITSColumnObject)
+            decode_element=partial(
+                decode_as_element, element=FITSColumnObject
+            ),
         )
     )
 
@@ -522,50 +520,57 @@ class FITSDataObject(DataObject):
         lp = "" if lpath == "/" else lpath
 
         if isinstance(spec["name"], list):
-            errors.append((
-                f"{lp}/name",
-                "for FITS files, must be a string, not a list"
-            ))
+            errors.append(
+                (f"{lp}/name", "for FITS files, must be a string, not a list")
+            )
         if spec["value"] is not None:
-            errors.append((f"{lp}/value", "may only be defined for ASDF files"))
+            errors.append(
+                (f"{lp}/value", "may only be defined for ASDF files")
+            )
         if spec["objtype"] is None:
             errors.append((f"{lp}/objtype", "must be defined for FITS files"))
         else:
             objtype = spec["objtype"].lower()
             spec["objtype"] = objtype
             if objtype not in FITS_HDU_TYPES:
-                errors.append((
-                    f"{lp}/objtype",
-                    f"{objtype!r} is not a recognized HDU type for FITS files."
-                    f" Must be one of: {FHT_FOR_ERROR}"
-                ))
+                errors.append(
+                    (
+                        f"{lp}/objtype",
+                        f"{objtype!r} is not a recognized HDU type for FITS files."
+                        f" Must be one of: {FHT_FOR_ERROR}",
+                    )
+                )
             if objtype != "bintable" and spec["schema"] != []:
-                errors.append((
-                    f"{lp}/schema",
-                    "can only be specified for bintable HDUs"
-                ))
+                errors.append(
+                    (f"{lp}/schema", "can only be specified for bintable HDUs")
+                )
             if objtype not in ("primary", "image", "compimage"):
                 if spec["ndim"] is not None:
-                    errors.append((
-                        f"{lp}/ndim",
-                        "can only be specified for primary, image,"
-                        " and compimage HDUs."
-                    ))
+                    errors.append(
+                        (
+                            f"{lp}/ndim",
+                            "can only be specified for primary, image,"
+                            " and compimage HDUs.",
+                        )
+                    )
                 if spec["dtype"] is not None:
-                    errors.append((
-                        f"{lp}/dtype",
-                        "can only be specified for primary, image,"
-                        " and compimage HDUs."
-                    ))
+                    errors.append(
+                        (
+                            f"{lp}/dtype",
+                            "can only be specified for primary, image,"
+                            " and compimage HDUs.",
+                        )
+                    )
         if (dtype := spec["dtype"]) is not None:
-            if (
-                SUPPORTED_DTYPE_RE.fullmatch(dtype)
-                and not FITS_ARRAY_DTYPE_RE.fullmatch(dtype)
-            ):
-                errors.append((
-                    f"{lp}/dtype",
-                    f"{dtype!r} is not a supported FITS array element type"
-                ))
+            if SUPPORTED_DTYPE_RE.fullmatch(
+                dtype
+            ) and not FITS_ARRAY_DTYPE_RE.fullmatch(dtype):
+                errors.append(
+                    (
+                        f"{lp}/dtype",
+                        f"{dtype!r} is not a supported FITS array element type",
+                    )
+                )
 
         return errors
 
@@ -573,9 +578,11 @@ class FITSDataObject(DataObject):
 class ParquetDataObject(DataObject):
     # see notes in ASDFDataObject
     schema: list[ColumnObject] = special_field(
-        decode_value = partial(
+        decode_value=partial(
             decode_as_list,
-            decode_element=partial(decode_as_element, element=ParquetColumnObject)
+            decode_element=partial(
+                decode_as_element, element=ParquetColumnObject
+            ),
         )
     )
 
@@ -587,24 +594,28 @@ class ParquetDataObject(DataObject):
         lp = "" if lpath == "/" else lpath
 
         if spec["value"] is not None:
-            errors.append((
-                f"{lp}/value", "may only be defined for ASDF files"
-            ))
+            errors.append(
+                (f"{lp}/value", "may only be defined for ASDF files")
+            )
         if (objtype := spec["objtype"]) is not None:
             objtype = objtype.lower()
             spec["objtype"] = objtype
             if objtype != "table":
-                errors.append((
-                    f"{lp}/objtype",
-                    "must be 'table' in Parquet files (or just don't define it)"
-                ))
+                errors.append(
+                    (
+                        f"{lp}/objtype",
+                        "must be 'table' in Parquet files (or just don't define it)",
+                    )
+                )
         else:
             spec["objtype"] = "table"
         if isinstance(spec["name"], list):
-            errors.append((
-                f"{lp}/name",
-                "for Parquet files, must be a string, not a list"
-            ))
+            errors.append(
+                (
+                    f"{lp}/name",
+                    "for Parquet files, must be a string, not a list",
+                )
+            )
         return errors
 
 
@@ -621,8 +632,7 @@ class GlobalValidationOptions(LabelElement):
 
 class DeliveryMeta(LabelElement):
     schema_version: str = special_field(
-        required=True,
-        default="<schema version missing>"
+        required=True, default="<schema version missing>"
     )
     global_validation_options: GlobalValidationOptions
 
@@ -637,6 +647,7 @@ def decode_as_filepattern(val: FieldNode, lpath: str) -> FilePattern:
         return decode_as_element(val, lpath, element=FilePattern)
 
     include = True
+
     def process_exclude_marker(pat: str) -> str:
         nonlocal include
         if pat.startswith("(?!)"):
@@ -644,12 +655,11 @@ def decode_as_filepattern(val: FieldNode, lpath: str) -> FilePattern:
             pat = pat.removeprefix("(?!)")
         return pat
 
-    pattern = decode_as_regex(val, lpath, adjust_pattern=process_exclude_marker)
+    pattern = decode_as_regex(
+        val, lpath, adjust_pattern=process_exclude_marker
+    )
     return FilePattern(
-        lpath = lpath,
-        _errors = [],
-        pattern = pattern,
-        include = include
+        lpath=lpath, _errors=[], pattern=pattern, include=include
     )
 
 
@@ -659,14 +669,12 @@ def decode_as_filepatterns(val: FieldNode, lpath: str) -> list[FilePattern]:
     # OR on regex substring search is associative and commutative, so it's
     # fine to put each group in a canonical order
     # (future optimization: merge each group into one big regex)
-    pats.sort(key = lambda fp: (not fp.include, fp.pattern.pattern))
+    pats.sort(key=lambda fp: (not fp.include, fp.pattern.pattern))
     return pats
 
 
 def decode_objects_with_std(
-    val: FieldNode,
-    lpath: str,
-    spec: dict[str, Any]
+    val: FieldNode, lpath: str, spec: dict[str, Any]
 ) -> list[DataObject]:
     """
     Decode Filetype.objects as the appropriate DataObject subclass
@@ -684,7 +692,8 @@ def decode_objects_with_std(
             obj_t = DataObject
 
     return decode_as_list(
-        val, lpath,
+        val,
+        lpath,
         decode_element=partial(decode_as_element, element=obj_t),
     )
 
@@ -698,7 +707,7 @@ class Filetype(LabelElement):
     # only required if there are objects (see below)
     standard: str = "unspecified"
     objects: list[DataObject] = special_field(
-        decode_with_spec = decode_objects_with_std,
+        decode_with_spec=decode_objects_with_std,
     )
     validation_options: FiletypeValidationOptions
 
@@ -713,58 +722,70 @@ class Filetype(LabelElement):
         spec["standard"] = std
 
         if len(spec["filename"]) == 0:
-            errors.append((
-                f"{lp}/filename",
-                "should have at least one pattern"
-            ))
+            errors.append(
+                (f"{lp}/filename", "should have at least one pattern")
+            )
         # this check is sufficient because decode_as_filepatterns
         # sorts all exclude patterns after all include patterns
         elif not spec["filename"][0].include:
-            errors.append((
-                f"{lp}/filename",
-                "should have at least one inclusive pattern"
-            ))
+            errors.append(
+                (
+                    f"{lp}/filename",
+                    "should have at least one inclusive pattern",
+                )
+            )
 
         if spec["ignore"]:
             if len(spec["objects"]) > 0:
-                errors.append((
-                    f"{lp}/objects",
-                    "should not be defined when ignore is true"
-                ))
+                errors.append(
+                    (
+                        f"{lp}/objects",
+                        "should not be defined when ignore is true",
+                    )
+                )
             if std != "unspecified":
-                errors.append((
-                    f"{lp}/standard",
-                    "should not be set when ignore is true"
-                ))
+                errors.append(
+                    (f"{lp}/standard", "should not be set when ignore is true")
+                )
             if len(spec["validation_options"].skip) > 0:
-                errors.append((
-                    f"{lp}/validation_options",
-                    "should not be set when ignore is true"
-                ))
+                errors.append(
+                    (
+                        f"{lp}/validation_options",
+                        "should not be set when ignore is true",
+                    )
+                )
 
         if len(spec["objects"]) > 0:
             if std == "unspecified":
-                errors.append((
-                    f"{lp}/standard",
-                    "must be defined if any objects are defined"
-                ))
+                errors.append(
+                    (
+                        f"{lp}/standard",
+                        "must be defined if any objects are defined",
+                    )
+                )
             elif std not in STANDARDS_SUPPORTING_DATA_VALIDATION:
-                errors.append((
-                    f"{lp}/standard",
-                    f"{std} does not support data validation,"
-                    f" but objects are defined. Only {SSDV_FOR_ERROR}"
-                    f" support data-level validation."
-                ))
+                errors.append(
+                    (
+                        f"{lp}/standard",
+                        f"{std} does not support data validation,"
+                        f" but objects are defined. Only {SSDV_FOR_ERROR}"
+                        f" support data-level validation.",
+                    )
+                )
             elif std == "parquet" and len(spec["objects"]) > 1:
-                errors.append((
-                    f"{lp}/objects",
-                    "Parquet files may define only one object."
-                ))
+                errors.append(
+                    (
+                        f"{lp}/objects",
+                        "Parquet files may define only one object.",
+                    )
+                )
             elif std == "fits" and spec["objects"][0].objtype != "primary":
-                errors.append((
-                    f"{lp}/objects/0/objtype",
-                    "first HDU in a FITS file must be a 'primary' HDU"
-                ))
+                errors.append(
+                    (
+                        f"{lp}/objects/0/objtype",
+                        "first HDU in a FITS file must be a 'primary' HDU",
+                    )
+                )
 
         return errors
 
@@ -785,13 +806,9 @@ class Filetype(LabelElement):
 
 
 class Label(LabelElement):
-    dataset: str = special_field(
-        required=True,
-        default="<name missing>"
-    )
+    dataset: str = special_field(required=True, default="<name missing>")
     delivery_id: int | str = special_field(
-        required=True,
-        default="<delivery_id missing>"
+        required=True, default="<delivery_id missing>"
     )
     time: TimeInfo = special_field(required=True)
     contacts: Contacts
@@ -831,9 +848,9 @@ class Label(LabelElement):
     def covers_file(self, path: Path | str) -> bool:
         return any(ft.covers_file(path) for ft in self.filetypes.values())
 
-    def covered_files_local(self, dir: Path) -> Iterable[
-        tuple[Path, list[Filetype]]
-    ]:
+    def covered_files_local(
+        self, dir: Path
+    ) -> Iterable[tuple[Path, list[Filetype]]]:
         """Yield Path objects for all of the files below DIR.  Each is paired
         with a list of all the Filetype objects that can apply to it.
         DIR must be a directory on disk.
@@ -856,8 +873,10 @@ class Label(LabelElement):
                 continue
 
             elif entry.is_symlink():
-                LOG.warn(f"skipping symbolic link {entry.path}"
-                         " (MAST does not accept these)")
+                LOG.warn(
+                    f"skipping symbolic link {entry.path}"
+                    " (MAST does not accept these)"
+                )
 
             else:
                 from mast_transfer_tools.utilz.stat import a_filetype
@@ -865,12 +884,14 @@ class Label(LabelElement):
                 path = str(entry.path)
                 what = a_filetype(entry.stat(follow_symlinks=False).st_mode)
 
-                LOG.warn(f"skipping {path}, which is {what}"
-                         " (it does not make sense to archive these)")
+                LOG.warn(
+                    f"skipping {path}, which is {what}"
+                    " (it does not make sense to archive these)"
+                )
 
-    def covered_files_s3(self, bucket: 'Bucket', prefix: str) -> Iterable[
-        tuple[str, list[Filetype]]
-    ]:
+    def covered_files_s3(
+        self, bucket: "Bucket", prefix: str
+    ) -> Iterable[tuple[str, list[Filetype]]]:
         for key in bucket.ls(prefix, recursive=True, formatting="simple"):
             # we can assume every entry in the listing is a regular file
             # and they all begin with the prefix

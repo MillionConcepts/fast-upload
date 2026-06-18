@@ -5,6 +5,7 @@ from mast_transfer_tools.utilz.shims import path_walk
 
 import pytest
 
+
 def test_path_walk() -> None:
     our_mods = set(
         m for m in sys.modules.keys() if m.startswith("mast_transfer_tools.")

@@ -1,4 +1,5 @@
 """Actually uploading files to MAST."""
+
 from pathlib import Path
 import sys
 import time
@@ -17,7 +18,7 @@ def upload(
     label: Label,
     transfer_type: TransferType,
     file_index: pd.DataFrame,
-    source: Path | Bucket
+    source: Path | Bucket,
 ) -> None:
     import mast_transfer_tools.config as conf
 
@@ -49,7 +50,7 @@ def upload(
     client.control_bucket.put(
         label.as_text(),
         names.label_key(label.dataset, label.delivery_id),
-        literal_str=True
+        literal_str=True,
     )
 
     client.write_index()
@@ -72,7 +73,7 @@ def upload(
             if client.n_complete != last_n_complete:
                 client.cmessage(
                     f"{client.n_complete}/{len(client.file_list)} complete",
-                    "info"
+                    "info",
                 )
                 last_n_complete = client.n_complete
             time.sleep(0.5)

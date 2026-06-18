@@ -8,12 +8,14 @@ import os
 from pathlib import Path
 from typing import Any, Callable, Generic, Iterator, Protocol, Self, TypeVar
 
+
 class SupportsClose(Protocol):
     def close(self) -> None: ...
 
+
 T = TypeVar("T")
 RT = TypeVar("RT")
-SC = TypeVar('SC', bound=SupportsClose)
+SC = TypeVar("SC", bound=SupportsClose)
 
 
 class classproperty(Generic[T, RT]):
@@ -64,6 +66,7 @@ class close_or_forget(Generic[SC]):
     method is called UNLESS the forget() method has been called to
     transfer ownership of the wrapped object to the caller.
     """
+
     _resource: SC | None
 
     def __init__(self, resource: SC):
@@ -80,7 +83,9 @@ class close_or_forget(Generic[SC]):
     def resource(self) -> SC:
         r = self._resource
         if r is None:
-            raise RuntimeError("close_or_forget.resource accessed after forget")
+            raise RuntimeError(
+                "close_or_forget.resource accessed after forget"
+            )
         return r
 
     def forget(self) -> SC:
@@ -124,13 +129,13 @@ class RelPathDirEntry:
         return self._inner.inode()
 
     def stat(self, *, follow_symlinks: bool = True) -> os.stat_result:
-        return self._inner.stat(follow_symlinks = follow_symlinks)
+        return self._inner.stat(follow_symlinks=follow_symlinks)
 
     def is_dir(self, *, follow_symlinks: bool = True) -> bool:
-        return self._inner.is_dir(follow_symlinks = follow_symlinks)
+        return self._inner.is_dir(follow_symlinks=follow_symlinks)
 
     def is_file(self, *, follow_symlinks: bool = True) -> bool:
-        return self._inner.is_file(follow_symlinks = follow_symlinks)
+        return self._inner.is_file(follow_symlinks=follow_symlinks)
 
     def is_symlink(self) -> bool:
         return self._inner.is_symlink()

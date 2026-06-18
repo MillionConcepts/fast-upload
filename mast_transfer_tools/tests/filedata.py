@@ -13,53 +13,41 @@ from base64 import b64decode
 # have one entry for each extension in compression.RECOGNIZED_COMPRESSION_EXTS
 # (not just SUPPORTED_COMPRESSION_EXTS) and should be kept in the same
 # order as that array.
-COMPRESSED_FILES_DATA: dict[str, str|bytes] = {
+COMPRESSED_FILES_DATA: dict[str, str | bytes] = {
     # gzip
     ".gz": b"H4sIAAAAAAAAAwMAAAAAAAAAAAA=",
-
     # bzip2
     ".bz2": b"QlpoORdyRThQkAAAAAA=",
-
     # Lempel-Ziv by itself, focused on fast decompression
     ".lz4": b"BCJNGGRApwAAAAAFXcwC",
-
     # Lempel-Ziv-Oberhumer, also focused on fast decompression
     ".lzo": b"iUxaTwANChoKEEAgoAlAAQUDAAANAAAAAGlepxAAAAAAACruAu4AAAAA",
-
     # xz container for LZMA compression
     ".xz": b"/Td6WFoAAATm1rRGAAAAABzfRCEftvN9AQAAAAAEWVo=",
-
     # Zstandard
     ".zst": b"KLUv/SQAAQAAmenYUQ==",
-
     # PK-Zip (contents: one empty file with no name)
     ".zip": (
         b"UEsDBBQAAAAAAAAAIQAAAAAAAAAAAAAAAAAAAAAAUEsBAhQDFAAAAAAAAAAhAAAAAAA"
         b"AAAAAAAAAAAAAAAAAAAAAAAAAAIABAAAAAFBLBQYAAAAAAQABAC4AAAAeAAAAAAA="
     ),
-
     # 7-Zip native format (contents: one empty file named "X")
     ".7z": (
         b"N3q8ryccAARAPWcVAAAAAAAAAAAqAAAAAAAAAJL8ZCkBBQEOAYAPAYAZAgAAEQUAWAA"
         b"AABQKAQAAgD7V3rGdARUGAQAggKSBAAA="
     ),
-
     # the original bzip, with the patented arithmetic coding that no one
     # wanted to touch
     ".bz": b"QlowOX/////VbJW6AAAAAAA=",
-
     # alternative, rarely used LZMA-based compression format
     ".lz": b"TFpJUAEMAIP/+///wAAAAAAAAAAAAAAAAAAAACQAAAAAAAAA",
-
     # legacy container for LZMA compression
     ".lzma": b"XQAAQAD//////////wCD//v//8AAAAA=",
-
     # WinRAR native format (contents: one empty file named "X")
     ".rar": (
         b"UmFyIRoHAQAzkrXlCgEFBgAFAQGAgABxXpjCFwICgAAGgACkgwIAAAAAAAAAAIAAAQF"
         b"YHXdWUQMFBAA="
     ),
-
     # legacy Unix compress(1)
     # there were historically a bunch of variations, this is just one of them
     # (the most commonly used); yes it really does come out that short
@@ -73,22 +61,21 @@ compressed_exts = frozenset(COMPRESSED_FILES_DATA.keys())
 # this should include all our officially supported astro data file
 # formats (ASDF, FITS, Parquet) and as many plausibly encountered
 # ancillary file formats as practical
-UNCOMPRESSED_FILES_DATA: dict[str, str|bytes] = {
+UNCOMPRESSED_FILES_DATA: dict[str, str | bytes] = {
     # plain text
     # pangrams
     ".en.txt": "Amazingly, few discotheques provide jukeboxes.\n",
-    ".ru.txt": ("Разъяренный чтец эгоистично бьёт пятью жердями"
-                " шустрого фехтовальщика.\n"),
-
+    ".ru.txt": (
+        "Разъяренный чтец эгоистично бьёт пятью жердями"
+        " шустрого фехтовальщика.\n"
+    ),
     # one line from from 古詩十九首 (Nineteen Old Poems)
     ".zh.txt": "青青河畔草，鬱鬱園中柳。盈盈樓上女，皎皎當窗牖。\n",
-
     # same as previous, converted to UTF-16
     ".zh.u16": (
         b"//5Sl1KXs2xUdUmDDP8xmzGbElctTvNnAjDIdsh2E2oKTnNZDP+Odo52dnWXelZyAjA"
         b"KAA=="
     ),
-
     # technically text
     ".csv": """\
 "class","name","rgb","h","s","l"
@@ -109,21 +96,18 @@ UNCOMPRESSED_FILES_DATA: dict[str, str|bytes] = {
 "accent","cyan","#2aa198",182.32776287881921,91.84316935538897,60.11187225403741
 "accent","green","#859900",97.07035644352293,100.0000000000022,59.67940250026341
 """,
-
     # ancillary, not text
     # https://belkadan.com/blog/2024/01/The-Biggest-Smallest-PNG/
     ".png": (
         b"iVBORw0KGgoAAAANSUhEUgAACBAAAAABAQAAAABFwfK3AAAACklEQVR4AWMYBQABAwA"
         b"BRUEDtQAAAABJRU5ErkJggg=="
     ),
-
     # https://stackoverflow.com/a/24124454
     ".jpg": (
         b"/9j/2wBDAAEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE"
         b"BAQEBAQEBAQEBAQEBAQEBAQEBAQH/wgALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAA"
         b"AAAAAAA//aAAgBAQAAAAE//9k="
     ),
-
     # https://unix.stackexchange.com/a/277967
     ".pdf": (
         b"JVBERi0xLjUKMSAwIG9iajw8L1R5cGUvQ2F0YWxvZy9QYWdlcyAyIDAgUj4+ZW5kb2J"
@@ -133,17 +117,14 @@ UNCOMPRESSED_FILES_DATA: dict[str, str|bytes] = {
         b"ZSA1L1dbMSAxIDFdL1Jvb3QgMSAwIFIvTGVuZ3RoIDE1Pj5zdHJlYW0KAAD/AQkAATQ"
         b"AAWUAAbIAZW5kc3RyZWFtIGVuZG9iagpzdGFydHhyZWYKMTc4CiUlRU9G"
     ),
-
     # supported primary data files
     # these are at the end because some of them are huge
-
     # pq.write_table(pa.Table.from_arrays([]), "empty.parquet",
     #                store_schema=False)
     ".parquet": (
         b"UEFSMRUEGRw1ABgGc2NoZW1hFQAAFgAZHBkMFgAWACYAFgAAKCBwYXJxdWV0LWNwcC1"
         b"hcnJvdyB2ZXJzaW9uIDIxLjAuMBkMAEUAAABQQVIx"
     ),
-
     # asdf.AsdfFile({"v": np.array([0])}).write_to("empty.asdf")
     # not completely empty because a *completely* empty ASDF file has no
     # binary section and no trailing block index
@@ -165,7 +146,6 @@ UNCOMPRESSED_FILES_DATA: dict[str, str|bytes] = {
         b"s/rI4AlWpJUqPU9HQAAAAAAAAAACNBU0RGIEJMT0NLIElOREVYCiVZQU1MIDEuMQotL"
         b"S0KLSA2NjIKLi4uCg=="
     ),
-
     # astropy.io.fits.PrimaryHDU(data=[]).writeto("empty.fits")
     # we regret the length; you are encouraged to find a way to shorten this
     ".fits": (
@@ -227,7 +207,7 @@ UNCOMPRESSED_FILES_DATA: dict[str, str|bytes] = {
         b"CAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg"
         b"ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA"
         b"gICAgICAgICAgICAgICAg"
-    )
+    ),
 }
 
 uncompressed_exts = frozenset(UNCOMPRESSED_FILES_DATA.keys())
@@ -244,8 +224,7 @@ def to_file_bytes(data: bytes | str) -> bytes:
 @pytest.fixture(scope="session")
 def compressed_files() -> dict[str, bytes]:
     return {
-        ext: to_file_bytes(data)
-        for ext, data in COMPRESSED_FILES_DATA.items()
+        ext: to_file_bytes(data) for ext, data in COMPRESSED_FILES_DATA.items()
     }
 
 

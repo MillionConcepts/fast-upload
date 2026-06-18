@@ -1,6 +1,7 @@
 """
 Objects defining lock behavior.
 """
+
 from pathlib import Path
 
 import datetime as dt
@@ -21,6 +22,7 @@ class LockStatus(enum.Enum):
     HELD: fresh lock exists and is owned by the entity
     INVALID: lock exists but cannot be decoded as text
     """
+
     UNLOCKED = enum.auto()
     STALE = enum.auto()
     LOCKED = enum.auto()
@@ -32,7 +34,7 @@ def check_lock(
     bucket: Bucket,
     entity: TransferEntity,
     locker_id: str | None = None,
-    staleness_threshold: int | None = None
+    staleness_threshold: int | None = None,
 ) -> LockStatus:
     """
     Check the status of a client, validator, or lambda lock object. locker_id

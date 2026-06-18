@@ -29,40 +29,27 @@ def test_exts_lists() -> None:
     assert recognized.isdisjoint(u_examples)
 
 
-@pytest.mark.parametrize(
-    "ext", compressed_exts
-)
+@pytest.mark.parametrize("ext", compressed_exts)
 def test_recognition_match_compressed(
-    ext: str,
-    compressed_files: dict[str, bytes]
+    ext: str, compressed_files: dict[str, bytes]
 ) -> None:
     data = compressed_files[ext]
     assert compression.compression_format_for_magic(data) == ext
     assert compression.check_compression_magic(data, Path("x" + ext)) == ext
 
 
-@pytest.mark.parametrize(
-    "ext", uncompressed_exts
-)
+@pytest.mark.parametrize("ext", uncompressed_exts)
 def test_recognition_match_uncompressed(
-    ext: str,
-    uncompressed_files: dict[str, bytes]
+    ext: str, uncompressed_files: dict[str, bytes]
 ) -> None:
     data = uncompressed_files[ext]
     assert compression.compression_format_for_magic(data) is None
-    assert compression.check_compression_magic(
-        data, Path("x" + ext)
-    ) is None
+    assert compression.check_compression_magic(data, Path("x" + ext)) is None
 
 
-@pytest.mark.parametrize(
-    ("e1","e2"),
-    tuple(combinations(compressed_exts, 2))
-)
+@pytest.mark.parametrize(("e1", "e2"), tuple(combinations(compressed_exts, 2)))
 def test_recognition_mismatch_compressed(
-    e1: str,
-    e2: str,
-    compressed_files: dict[str, bytes]
+    e1: str, e2: str, compressed_files: dict[str, bytes]
 ) -> None:
     d1 = compressed_files[e1]
     d2 = compressed_files[e2]
@@ -70,22 +57,17 @@ def test_recognition_mismatch_compressed(
     n2 = escape(compression.RECOGNIZED_COMPRESSION_EXTS[e2])
 
     with pytest.raises(
-            ValueError,
-            match=f"contents use {n2} compression but they use {n1} "
+        ValueError, match=f"contents use {n2} compression but they use {n1} "
     ):
         compression.check_compression_magic(d1, Path("x" + e2))
     with pytest.raises(
-            ValueError,
-            match=f"contents use {n1} compression but they use {n2} "
+        ValueError, match=f"contents use {n1} compression but they use {n2} "
     ):
         compression.check_compression_magic(d2, Path("x" + e1))
 
 
 @pytest.mark.parametrize(
-    ("cext","uext"), tuple(product(
-        compressed_exts,
-        uncompressed_exts
-    ))
+    ("cext", "uext"), tuple(product(compressed_exts, uncompressed_exts))
 )
 def test_recognition_mismatch_uncompressed(
     cext: str,
@@ -98,21 +80,19 @@ def test_recognition_mismatch_uncompressed(
 
     cname = escape(compression.RECOGNIZED_COMPRESSION_EXTS[cext])
     with pytest.raises(
-            ValueError,
-            match=f"contents use {cname} compression but they are uncompressed"
+        ValueError,
+        match=f"contents use {cname} compression but they are uncompressed",
     ):
         compression.check_compression_magic(udata, Path("x" + cext))
 
     with pytest.raises(
-            ValueError,
-            match=f"should be uncompressed but they use {cname} compression"
+        ValueError,
+        match=f"should be uncompressed but they use {cname} compression",
     ):
         compression.check_compression_magic(cdata, Path("x" + uext))
 
 
-@pytest.mark.parametrize(
-    "ext", compressed_exts
-)
+@pytest.mark.parametrize("ext", compressed_exts)
 def test_open_for_read_compressed(
     ext: str,
     compressed_files: dict[str, bytes],
@@ -135,9 +115,7 @@ def test_open_for_read_compressed(
             compression.open(fname, "rb")
 
 
-@pytest.mark.parametrize(
-    "ext", uncompressed_exts
-)
+@pytest.mark.parametrize("ext", uncompressed_exts)
 def test_open_for_read_uncompressed(
     ext: str,
     uncompressed_files: dict[str, bytes],
@@ -157,10 +135,12 @@ def test_open_for_read_uncompressed(
 
 
 @pytest.mark.parametrize(
-    ("uext","cext"), tuple(product(
-        uncompressed_exts,
-        ("",) + compression.SUPPORTED_COMPRESSION_EXTS
-    ))
+    ("uext", "cext"),
+    tuple(
+        product(
+            uncompressed_exts, ("",) + compression.SUPPORTED_COMPRESSION_EXTS
+        )
+    ),
 )
 def test_open_for_write_supported(
     uext: str,

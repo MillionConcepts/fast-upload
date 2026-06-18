@@ -14,7 +14,10 @@ from astropy.io.fits.hdu.base import _BaseHDU
 from astropy.io.fits.card import Card
 
 from mast_transfer_tools.labels import (
-    DataObject, FiletypeValidationOptions, Filetype, ObjectMetadata
+    DataObject,
+    FiletypeValidationOptions,
+    Filetype,
+    ObjectMetadata,
 )
 from mast_transfer_tools.validation import generic
 from mast_transfer_tools.utilz.english import repr_rx
@@ -50,7 +53,9 @@ def check_hdu_name(
 
     else:
         if spec.name != hdu.name:
-            return [f"incorrect HDU name: expected {spec.name}, got {hdu.name}"]
+            return [
+                f"incorrect HDU name: expected {spec.name}, got {hdu.name}"
+            ]
 
     return []
 
@@ -115,7 +120,7 @@ def check_hdu_array_props(
 class HduMeta:
     uniform: None | ObjectMetadata = None
     by_index: dict[int, ObjectMetadata] = dataclasses.field(
-        default_factory = dict
+        default_factory=dict
     )
 
 
@@ -171,7 +176,7 @@ def check_hdu_meta(
                 header[keyword] = []
             header[keyword].append(value)
     except fits.VerifyError as e:
-        return { "": [f"Low-level FITS file verification error: {e}"] }
+        return {"": [f"Low-level FITS file verification error: {e}"]}
 
     failures = {}
     for key, meta_specs in metadata.items():
@@ -190,10 +195,12 @@ def check_hdu_meta(
                 ]
                 continue
 
-            if (failure := generic.check_meta(
-                card_values[0],
-                meta_specs.uniform,
-            )) is not None:
+            if (
+                failure := generic.check_meta(
+                    card_values[0],
+                    meta_specs.uniform,
+                )
+            ) is not None:
                 failures[key] = [failure]
 
         else:
@@ -260,7 +267,7 @@ def check_file(hdul: fits.HDUList, spec: Filetype) -> dict[str, list[str]]:
     Return a semi-structured description of the differences.
     An empty dict means no significant differences were found.
     """
-    if 'all' in spec.validation_options.skip:
+    if "all" in spec.validation_options.skip:
         return {}
     failures = {}
     hdu_ix = 0
@@ -279,7 +286,7 @@ def check_file(hdul: fits.HDUList, spec: Filetype) -> dict[str, list[str]]:
 
             hdu_ix += 1
             if (
-                hdu_failures.get('name') is not None
+                hdu_failures.get("name") is not None
                 or not hdu_spec.repeated
                 or hdu_ix >= len(hdul)
             ):

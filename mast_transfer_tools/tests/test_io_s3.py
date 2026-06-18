@@ -15,20 +15,27 @@ MAX_FILE_SIZE = 128 * CHUNK_SIZE
 
 @st.composite
 def fake_file(draw: st.DrawFn) -> tuple[str, int]:
-    dt = draw(st.sampled_from([
-        "u1", "u2", "u4", "i1", "i2", "i4",
-    ]))
+    dt = draw(
+        st.sampled_from(
+            [
+                "u1",
+                "u2",
+                "u4",
+                "i1",
+                "i2",
+                "i4",
+            ]
+        )
+    )
     itemsize = int(dt[1])
-    nelem = draw(st.integers(min_value = 0, max_value = MAX_FILE_SIZE))
+    nelem = draw(st.integers(min_value=0, max_value=MAX_FILE_SIZE))
     length = nelem * itemsize
     name = f"{dt}-{length}"
     return name, length
 
 
 def do_test_S3Reader_read(
-    name: str,
-    length: int,
-    read_seq: list[tuple[int, int]]
+    name: str, length: int, read_seq: list[tuple[int, int]]
 ) -> None:
     bucket = FakeReadOnlyDataBucket("test_S3Reader")
     data = bucket.get_test_file(name)
@@ -57,26 +64,29 @@ def do_test_S3Reader_read(
             assert blk == data[blk_pos:exp_end]
 
 
-@given(tc = fake_file())
+@given(tc=fake_file())
 def test_S3Reader_read_whole_file(tc: tuple[str, int]) -> None:
     name, length = tc
     do_test_S3Reader_read(name, length, [(0, length)])
 
 
-@given(tc = fake_file(), data=st.data())
+@given(tc=fake_file(), data=st.data())
 def test_S3Reader_read_whole_file_chunks(
-    tc: tuple[str, int],
-    data: st.DataObject
+    tc: tuple[str, int], data: st.DataObject
 ) -> None:
     name, length = tc
 
     # read sequentially in chunks that add up to the whole file
-    splits = sorted(data.draw(st.lists(
-        st.integers(min_value=min(1, length), max_value=length),
-        min_size=1,
-        max_size=max(20, length // 64),
-        unique=True,
-    )))
+    splits = sorted(
+        data.draw(
+            st.lists(
+                st.integers(min_value=min(1, length), max_value=length),
+                min_size=1,
+                max_size=max(20, length // 64),
+                unique=True,
+            )
+        )
+    )
     seq = []
     prev = 0
     for end in splits:
@@ -89,27 +99,29 @@ def test_S3Reader_read_whole_file_chunks(
     do_test_S3Reader_read(name, length, seq)
 
 
-@given(tc = fake_file(), data=st.data())
+@given(tc=fake_file(), data=st.data())
 def test_S3Reader_read_random_access(
-    tc: tuple[str, int],
-    data: st.DataObject
+    tc: tuple[str, int], data: st.DataObject
 ) -> None:
     name, length = tc
 
     # random access reads, possibly overlapping, not necessarily
     # the entire file
-    positions = data.draw(st.lists(
-        st.integers(min_value=0, max_value=length),
-        min_size=2,
-        max_size=max(20, length // 64),
-    ))
-    lengths = data.draw(st.lists(
-        st.integers(min_value=0, max_value=length // 8),
-        min_size=len(positions),
-        max_size=len(positions)
-    ))
+    positions = data.draw(
+        st.lists(
+            st.integers(min_value=0, max_value=length),
+            min_size=2,
+            max_size=max(20, length // 64),
+        )
+    )
+    lengths = data.draw(
+        st.lists(
+            st.integers(min_value=0, max_value=length // 8),
+            min_size=len(positions),
+            max_size=len(positions),
+        )
+    )
 
     do_test_S3Reader_read(
-        name, length,
-        [ (p, p+l) for p, l in zip(positions, lengths) ]
+        name, length, [(p, p + l) for p, l in zip(positions, lengths)]
     )

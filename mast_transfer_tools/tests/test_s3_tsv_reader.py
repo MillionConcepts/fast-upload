@@ -21,6 +21,7 @@ class FakeFuture:
 
 class MockTailingBucket(MockBucket):
     """Fake S3 bucket for testing S3TSVReader's tailing behavior."""
+
     def __init__(self) -> None:
         self.tail_args = None
         self.tail_queue = None
@@ -41,7 +42,8 @@ class MockTailingBucket(MockBucket):
 
 
 TEST_FIELDSPEC: list[LogFieldRec] = [
-    {"name": "a", "required": True}, {"name": "b", "required": True}
+    {"name": "a", "required": True},
+    {"name": "b", "required": True},
 ]
 
 
@@ -166,9 +168,7 @@ def test_stop_stops_future_without_draining_pending_log_text() -> None:
 
     reader.start()
 
-    bucket.push(
-        "2026-01-01T00:00:00Z\ttransfer\tabc\tok\tmessage\tagent-1\n"
-    )
+    bucket.push("2026-01-01T00:00:00Z\ttransfer\tabc\tok\tmessage\tagent-1\n")
 
     reader.stop()
 

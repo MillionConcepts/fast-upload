@@ -16,6 +16,7 @@ class MockBucket(Bucket):  # type:ignore[misc] # until hostess is typed
     The methods throw plausible S3 failure exceptions or return
     nothing.
     """
+
     client: None
     resource: None
     session: None
@@ -31,7 +32,7 @@ class MockBucket(Bucket):  # type:ignore[misc] # until hostess is typed
         resource: Any = None,
         session: Any = None,
         config: Any = None,
-        n_threads: int = 4
+        n_threads: int = 4,
     ):
         # intentionally does not call Bucket.__init__
 
@@ -72,28 +73,24 @@ class MockBucket(Bucket):  # type:ignore[misc] # until hostess is typed
     @classmethod
     def _not_implemented_error(cls, method: str) -> ClientError:
         return ClientError(
-            { "Error": {
-                "Code": 400,
-                "Message": f"Not implemented by {cls.__name__}"
-            } },
+            {
+                "Error": {
+                    "Code": 400,
+                    "Message": f"Not implemented by {cls.__name__}",
+                }
+            },
             f"'{method}'",
         )
 
     def _not_found_error(self, method: str, key: str) -> ClientError:
         return ClientError(
-            { "Error": {
-                "Code": 404,
-                "Message": f"Key {key} does not exist"
-            } },
+            {"Error": {"Code": 404, "Message": f"Key {key} does not exist"}},
             f"'{method}'",
         )
 
     def _exc_error(self, method: str, exc: Exception) -> ClientError:
         return ClientError(
-            { "Error": {
-                "Code": 400,
-                "Message": str(exc)
-            } },
+            {"Error": {"Code": 400, "Message": str(exc)}},
             f"'{method}'",
         )
 
@@ -111,7 +108,7 @@ class MockBucket(Bucket):  # type:ignore[misc] # until hostess is typed
         az: str | int | None = None,
         tags: dict[str, str] | None = None,
         bucket_config: Any = None,
-        **bucket_kwargs: Any
+        **bucket_kwargs: Any,
     ) -> Any:
         raise cls._not_implemented_error("create")
 
@@ -123,7 +120,7 @@ class MockBucket(Bucket):  # type:ignore[misc] # until hostess is typed
         prefix: str | None = None,
         *,
         cache: Any = None,
-        fetch_owner: bool = False
+        fetch_owner: bool = False,
     ) -> Any:
         raise self._not_implemented_error("update_contents")
 
@@ -175,7 +172,7 @@ class MockBucket(Bucket):  # type:ignore[misc] # until hostess is typed
         *,
         literal_str: bool = False,
         config: Any = None,
-        **extra_args: str
+        **extra_args: str,
     ) -> Any:
         raise self._not_implemented_error("put")
 
@@ -186,7 +183,7 @@ class MockBucket(Bucket):  # type:ignore[misc] # until hostess is typed
         config: Any = None,
         start_byte: int | None = None,
         end_byte: int | None = None,
-        **extra_args: str
+        **extra_args: str,
     ) -> Any:
         raise self._not_implemented_error("get")
 
@@ -197,7 +194,7 @@ class MockBucket(Bucket):  # type:ignore[misc] # until hostess is typed
         *,
         return_buffer: bool = False,
         start_byte: int | None = None,
-        end_byte: int | None = None
+        end_byte: int | None = None,
     ) -> Any:
         raise self._not_implemented_error("read")
 
@@ -207,7 +204,7 @@ class MockBucket(Bucket):  # type:ignore[misc] # until hostess is typed
         destination: str | Sequence[str | None] | None = None,
         destination_bucket: str | None = None,
         config: Any = None,
-        **extra_args: str
+        **extra_args: str,
     ) -> Any:
         raise self._not_implemented_error("cp")
 
@@ -217,7 +214,7 @@ class MockBucket(Bucket):  # type:ignore[misc] # until hostess is typed
         key: str,
         *,
         literal_str: bool = False,
-        offset: int | None = None
+        offset: int | None = None,
     ) -> None:
         raise self._not_implemented_error("append")
 
@@ -234,7 +231,7 @@ class MockBucket(Bucket):  # type:ignore[misc] # until hostess is typed
         start_pos: int | None = None,
         poll: float = 1,
         text_mode: bool = True,
-        permit_missing: bool = False
+        permit_missing: bool = False,
     ) -> Any:
         raise self._not_implemented_error("tail")
 
@@ -247,7 +244,7 @@ class MockBucket(Bucket):  # type:ignore[misc] # until hostess is typed
         cache: Any = None,
         start_after: str | None = None,
         cache_only: bool = False,
-        fetch_owner: bool = False
+        fetch_owner: bool = False,
     ) -> Any:
         raise self._not_implemented_error("ls")
 
@@ -281,6 +278,7 @@ class FakeReadOnlyDataBucket(MockBucket):
     contain exactly {length} bytes of data, consisting of sequential
     values of {dtype}; all other filenames are reported as nonexistent.
     """
+
     _files: dict[str, bytes]
 
     def __init__(
@@ -290,7 +288,7 @@ class FakeReadOnlyDataBucket(MockBucket):
         resource: Any = None,
         session: Any = None,
         config: Any = None,
-        n_threads: int = 4
+        n_threads: int = 4,
     ):
         super().__init__(
             bucket_name,
@@ -314,7 +312,9 @@ class FakeReadOnlyDataBucket(MockBucket):
 
             nelem, leftover = divmod(length, dt.itemsize)
             if leftover:
-                raise ValueError(f"{length} is not a multiple of {dt.itemsize}")
+                raise ValueError(
+                    f"{length} is not a multiple of {dt.itemsize}"
+                )
 
             arr = np.linspace(0, nelem, num=nelem, endpoint=False, dtype=dt)
             data = arr.tobytes()
@@ -333,7 +333,7 @@ class FakeReadOnlyDataBucket(MockBucket):
             raise self._not_implemented_error("multiple-file head")
 
         data = self.get_test_file(key)
-        return { "ContentLength": str(len(data)) }
+        return {"ContentLength": str(len(data))}
 
     def get(
         self,
@@ -344,7 +344,7 @@ class FakeReadOnlyDataBucket(MockBucket):
         config: Any = None,
         start_byte: int | None = None,
         end_byte: int | None = None,
-        **extra_args: str
+        **extra_args: str,
     ) -> str | Path | IOBase | list[str | Path | IOBase | None]:
         if not isinstance(key, str):
             raise self._not_implemented_error("multiple-file get")
@@ -582,9 +582,7 @@ class FakeMutableBucket(MockBucket):
             raise self._not_implemented_error("get with config")
         if extra_args:
             raise self._not_implemented_error("get with extra args")
-        data = self._slice(
-            self._get_object(key, "get"), start_byte, end_byte
-        )
+        data = self._slice(self._get_object(key, "get"), start_byte, end_byte)
         self.calls["get"].append(
             {
                 "key": key,
@@ -618,9 +616,7 @@ class FakeMutableBucket(MockBucket):
         start_byte: int | None = None,
         end_byte: int | None = None,
     ) -> bytes | str | BytesIO | StringIO:
-        data = self._slice(
-            self._get_object(key, "read"), start_byte, end_byte
-        )
+        data = self._slice(self._get_object(key, "read"), start_byte, end_byte)
         self.calls["read"].append(
             {
                 "key": key,
@@ -651,7 +647,12 @@ class FakeMutableBucket(MockBucket):
         start_after: str | None = None,
         cache_only: bool = False,
         fetch_owner: bool = False,
-    ) -> tuple[str, ...] | tuple[dict[str, Any], ...] | pd.DataFrame | dict[str, Any]:
+    ) -> (
+        tuple[str, ...]
+        | tuple[dict[str, Any], ...]
+        | pd.DataFrame
+        | dict[str, Any]
+    ):
         if cache is not None or cache_only is True or fetch_owner is True:
             raise self._not_implemented_error(
                 "ls with cache/cache_only/fetch_owner"

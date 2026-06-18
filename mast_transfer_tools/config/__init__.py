@@ -6,6 +6,7 @@ Parameter Store or S3 objects, but this contains at least values necessary to
 It may at some point be a better idea to distribute multiple versions of this
 a different way. Module currently contains values for the MAST dev deployment.
 """
+
 import botocore.config
 
 from mast_transfer_tools.upload.cognito import CognitoConfiguration
@@ -31,13 +32,13 @@ COGCONFIG = CognitoConfiguration(
     redirect_uri="http://localhost:3000",
     region="us-east-1",
     user_pool_id="us-east-1_oMbs0cEea",
-    identity_pool_id="us-east-1:df0e1fac-bc76-4d8c-ae81-e4c03b9ec9b9"
+    identity_pool_id="us-east-1:df0e1fac-bc76-4d8c-ae81-e4c03b9ec9b9",
 )
 
 LAMBDA_CLIENT_CONFIG = botocore.config.Config(
-    retries={'total_max_attempts': 1, 'mode': 'standard'},
+    retries={"total_max_attempts": 1, "mode": "standard"},
     read_timeout=300,
-    connect_timeout=10
+    connect_timeout=10,
 )
 
 VAL_PIPE_SQS_QUEUE_URL = "mast-fast-data-validation"

@@ -23,26 +23,29 @@ from mast_transfer_tools import labels
 from mast_transfer_tools.label_meta import (
     ExplicitNull,
     LabelElement,
-    to_yaml_repr
+    to_yaml_repr,
 )
 
 # Some tests are parametrized over every subclass of LabelElement we
 # have, except for LabelElement itself, which is (informally) an
 # abstract base class.
-ALL_LABEL_TYPES = [kv[1] for kv in getmembers(
-    labels,
-    lambda obj: (
-        isinstance(obj, type)
-        and issubclass(obj, LabelElement)
-        and obj is not LabelElement
+ALL_LABEL_TYPES = [
+    kv[1]
+    for kv in getmembers(
+        labels,
+        lambda obj: (
+            isinstance(obj, type)
+            and issubclass(obj, LabelElement)
+            and obj is not LabelElement
+        ),
     )
-)]
+]
 
 # Some tests need to know the set of all keys that are permitted for
 # _some_ LabelElement subclass.
-ALL_PERMITTED_KEYS = frozenset(chain.from_iterable(
-    cls.permitted_keys for cls in ALL_LABEL_TYPES
-))
+ALL_PERMITTED_KEYS = frozenset(
+    chain.from_iterable(cls.permitted_keys for cls in ALL_LABEL_TYPES)
+)
 
 # Some tests need to know what file types are supported.
 # This is not a strictly defined set, because any type we don't
@@ -60,9 +63,9 @@ ALL_TESTED_FILETYPES = [
     "txt",
 ]
 
-REJECT_IDENTIFIERS = re_compile(
-    r"(?is)\A(?:true|false|null|undefined|none)\Z"
-)
+REJECT_IDENTIFIERS = re_compile(r"(?is)\A(?:true|false|null|undefined|none)\Z")
+
+
 @st.composite
 def st_identifier(
     draw: st.DrawFn,
@@ -81,8 +84,8 @@ def st_identifier(
     Passing False for 'uppercase', 'lowercase', 'digits', and/or 'underscore'
     will exclude that type of character from the generated identifiers.
     """
-    first_cats: list[Literal["Ll","Lu","N"]] = []
-    rest_cats: list[Literal["Ll","Lu","N"]] = []
+    first_cats: list[Literal["Ll", "Lu", "N"]] = []
+    rest_cats: list[Literal["Ll", "Lu", "N"]] = []
     include_chars = []
     if uppercase:
         first_cats.append("Lu")
@@ -106,20 +109,24 @@ def st_identifier(
         # This is equivalent to
         #    st.from_regex("[A-Za-z_][A-Za-z0-9_]*", fullmatch=True)
         # but slightly faster.
-        first = draw(st.characters(
-            codec="ascii",
-            categories = first_cats,
-            include_characters = include_chars,
-        ))
-        rest = draw(st.text(
+        first = draw(
             st.characters(
                 codec="ascii",
-                categories = rest_cats,
-                include_characters = include_chars,
-            ),
-            min_size=0,
-            max_size=11,
-        ))
+                categories=first_cats,
+                include_characters=include_chars,
+            )
+        )
+        rest = draw(
+            st.text(
+                st.characters(
+                    codec="ascii",
+                    categories=rest_cats,
+                    include_characters=include_chars,
+                ),
+                min_size=0,
+                max_size=11,
+            )
+        )
         ident = first + rest
         if not REJECT_IDENTIFIERS.fullmatch(ident):
             return ident
@@ -142,11 +149,11 @@ def test_empty(ltype: type[LabelElement]) -> None:
         },
         "FITSColumnObject": {
             "/name": ["must always be defined"],
-            "/dtype": ["must always be defined"]
+            "/dtype": ["must always be defined"],
         },
         "ParquetColumnObject": {
             "/name": ["must always be defined"],
-            "/dtype": ["must always be defined"]
+            "/dtype": ["must always be defined"],
         },
         "ASDFDataObject": {
             "/objtype": ["must be defined for ASDF files"],
@@ -171,7 +178,7 @@ def test_empty(ltype: type[LabelElement]) -> None:
             "/delivery_meta/schema_version": ["must always be defined"],
             "/time": ["must always be defined"],
             "/time/delivery_start_date": ["must always be defined"],
-        }
+        },
     }
 
     obj = ltype.from_blank()
@@ -179,7 +186,7 @@ def test_empty(ltype: type[LabelElement]) -> None:
 
 
 def st_improper_input_dict(
-    ltype: type[LabelElement]
+    ltype: type[LabelElement],
 ) -> st.SearchStrategy[dict[str, str]]:
     """
     Parametric strategy: Given a LabelObject subclass, produce an input
@@ -208,22 +215,23 @@ def st_improper_input_dict(
         before or after the original.
         """
         base_key = draw(st.sampled_from(permitted))
-        typo_position = draw(st.integers(
-            min_value = 0,
-            max_value = len(base_key) - 1
-        ))
+        typo_position = draw(
+            st.integers(min_value=0, max_value=len(base_key) - 1)
+        )
         was = base_key[typo_position]
-        not_was = ascii_letters.replace(was, '')
+        not_was = ascii_letters.replace(was, "")
 
         return (
             base_key[:typo_position]
-            + draw(st.one_of(
-                st.just(''),
-                st.sampled_from(not_was),
-                st.sampled_from(ascii_letters).map(lambda c: c + was),
-                st.sampled_from(ascii_letters).map(lambda c: was + c),
-            ))
-            + base_key[(typo_position + 1):]
+            + draw(
+                st.one_of(
+                    st.just(""),
+                    st.sampled_from(not_was),
+                    st.sampled_from(ascii_letters).map(lambda c: c + was),
+                    st.sampled_from(ascii_letters).map(lambda c: was + c),
+                )
+            )
+            + base_key[(typo_position + 1) :]
         )
 
     return st.dictionaries(
@@ -288,7 +296,7 @@ def st_good_TimeInfo() -> st.SearchStrategy[dict[str, date]]:
         {
             "delivery_start_date": st.dates(),
         },
-        optional = {
+        optional={
             "observation_start_date": st.dates(),
             "observation_end_date": st.dates(),
         },
@@ -306,7 +314,7 @@ def check_TimeInfo(inp: dict[str, date], obj: labels.TimeInfo) -> None:
     assert obj.observation_end_date == inp.get("observation_end_date")
 
 
-@given(inp = st_good_TimeInfo())
+@given(inp=st_good_TimeInfo())
 def test_good_TimeInfo(inp: dict[str, date]) -> None:
     """
     Generate random valid TimeInfo input dictionaries and verify
@@ -345,7 +353,7 @@ def check_Contacts(inp: dict[str, Any], obj: labels.Contacts) -> None:
     assert obj.provider == inp.get("provider", [])
 
 
-@given(inp = st_good_Contacts())
+@given(inp=st_good_Contacts())
 def test_good_Contacts(inp: dict[str, list[str]]) -> None:
     """
     Generate random valid Contacts input dictionaries and verify
@@ -356,7 +364,7 @@ def test_good_Contacts(inp: dict[str, list[str]]) -> None:
 
 
 def st_good_ColumnObject(
-    ty: type[labels.ColumnObject]
+    ty: type[labels.ColumnObject],
 ) -> st.SearchStrategy[dict[str, Any]]:
     """
     Parametric strategy producing a valid input dictionary for a
@@ -376,10 +384,10 @@ def st_good_ColumnObject(
             "name": st_identifier(),
             "dtype": st.from_regex(ty._supported_dtype_re, fullmatch=True),
         },
-        optional = {
+        optional={
             "name_regex": st.booleans(),
             "repeated": st.booleans(),
-        }
+        },
     )
     return bst.map(maybe_compile_name_regex)
 
@@ -401,18 +409,17 @@ def check_ColumnObject(
     assert obj.repeated == inp.get("repeated", False)
     # name_regex is forced to True if repeated is True
     assert obj.name_regex == (
-        inp.get("name_regex", False)
-        or inp.get("repeated", False)
+        inp.get("name_regex", False) or inp.get("repeated", False)
     )
 
 
-@pytest.mark.parametrize("ty", [labels.ColumnObject,
-                                labels.FITSColumnObject,
-                                labels.ParquetColumnObject])
+@pytest.mark.parametrize(
+    "ty",
+    [labels.ColumnObject, labels.FITSColumnObject, labels.ParquetColumnObject],
+)
 @given(st.data())  # see kvetching at test_improper_keys
 def test_good_ColumnObject(
-    ty: type[labels.ColumnObject],
-    data: st.DataObject
+    ty: type[labels.ColumnObject], data: st.DataObject
 ) -> None:
     """
     For each concrete ColumnObject subclass, generate random valid
@@ -424,13 +431,13 @@ def test_good_ColumnObject(
     check_ColumnObject(inp, obj)
 
 
-@pytest.mark.parametrize("ty", [labels.ColumnObject,
-                                labels.FITSColumnObject,
-                                labels.ParquetColumnObject])
-@given(st.data()) # see kvetching at test_improper_keys
+@pytest.mark.parametrize(
+    "ty",
+    [labels.ColumnObject, labels.FITSColumnObject, labels.ParquetColumnObject],
+)
+@given(st.data())  # see kvetching at test_improper_keys
 def test_bad_dtype_ColumnObject(
-    ty: type[labels.ColumnObject],
-    data: st.DataObject
+    ty: type[labels.ColumnObject], data: st.DataObject
 ) -> None:
     """
     For each concrete ColumnObject subclass, generate input dictionaries
@@ -518,7 +525,7 @@ def test_bad_dtype_ColumnObject(
 
 
 def st_good_ObjectMetadata(
-    ty: type[labels.ObjectMetadata]
+    ty: type[labels.ObjectMetadata],
 ) -> st.SearchStrategy[dict[str, Any]]:
     """
     Parametric strategy producing a valid input dictionary for a
@@ -536,7 +543,7 @@ def st_good_ObjectMetadata(
     return st.fixed_dictionaries(
         {
             "value": st.one_of(
-                #st.text() - produces text that can be confused for numbers
+                # st.text() - produces text that can be confused for numbers
                 st_identifier(),
                 st.integers(),
                 st.floats(allow_nan=False),
@@ -544,7 +551,7 @@ def st_good_ObjectMetadata(
                 st.just(ExplicitNull),
             ),
         },
-        optional = optional,
+        optional=optional,
     )
 
 
@@ -552,7 +559,7 @@ def check_ObjectMetadata(
     inp: dict[str, Any],
     obj: labels.ObjectMetadata,
     *,
-    extra_errors: Sequence[tuple[str, str]] = []
+    extra_errors: Sequence[tuple[str, str]] = [],
 ) -> None:
     """
     Test subroutine: Check that an ObjectMetadata object agrees
@@ -575,15 +582,17 @@ def check_ObjectMetadata(
     assert obj.index == inp.get("index")
 
 
-@pytest.mark.parametrize("ty", [
-    labels.ObjectMetadata,
-    labels.FITSObjectMetadata,
-    labels.ASDFObjectMetadata,
-])
-@given(st.data()) # see kvetching at test_improper_keys
+@pytest.mark.parametrize(
+    "ty",
+    [
+        labels.ObjectMetadata,
+        labels.FITSObjectMetadata,
+        labels.ASDFObjectMetadata,
+    ],
+)
+@given(st.data())  # see kvetching at test_improper_keys
 def test_good_ObjectMetadata(
-    ty: type[labels.ObjectMetadata],
-    data: st.DataObject
+    ty: type[labels.ObjectMetadata], data: st.DataObject
 ) -> None:
     """
     For each concrete ObjectMetadata subclass, generate random valid
@@ -595,20 +604,23 @@ def test_good_ObjectMetadata(
     check_ObjectMetadata(inp, obj)
 
 
-@pytest.mark.parametrize("ty", [
-    labels.ObjectMetadata,
-    labels.ASDFObjectMetadata,
-])
+@pytest.mark.parametrize(
+    "ty",
+    [
+        labels.ObjectMetadata,
+        labels.ASDFObjectMetadata,
+    ],
+)
 def test_bad_ObjectMetadata_index(ty: type[labels.ObjectMetadata]) -> None:
     """
     Test for rejection of an "index" property in ObjectMetadata other than
     FITSObjectMetadata.
     """
-    inp = { "value": 1, "index": 2 }
+    inp = {"value": 1, "index": 2}
     obj = ty.from_yaml(to_yaml_repr(inp))
-    check_ObjectMetadata(inp, obj, extra_errors=[
-        ("/index", "is only permitted for FITS files")
-    ])
+    check_ObjectMetadata(
+        inp, obj, extra_errors=[("/index", "is only permitted for FITS files")]
+    )
 
 
 def test_ObjectMetadata_null_value() -> None:
@@ -616,11 +628,11 @@ def test_ObjectMetadata_null_value() -> None:
     Test of the distinction between ObjectMetadata.value being
     *absent* and its being explicitly specified as "null".
     """
-    inpNull = { "objtype": "int", "value": ExplicitNull }
+    inpNull = {"objtype": "int", "value": ExplicitNull}
     omNull = labels.ObjectMetadata.from_yaml(to_yaml_repr(inpNull))
     check_ObjectMetadata(inpNull, omNull)
 
-    inpAbsent = { "objtype": "int" }
+    inpAbsent = {"objtype": "int"}
     omAbsent = labels.ObjectMetadata.from_yaml(to_yaml_repr(inpAbsent))
     check_ObjectMetadata(inpAbsent, omAbsent)
 
@@ -628,14 +640,12 @@ def test_ObjectMetadata_null_value() -> None:
     assert omAbsent.value is None
     assert ExplicitNull is not None
     # intentional != comparison to None to validate ExplicitNull.__eq__
-    assert ExplicitNull != None      # NOQA: E711
+    assert ExplicitNull != None  # NOQA: E711
 
 
 @st.composite
 def st_good_DataObject(
-    draw: st.DrawFn,
-    ty: type[labels.DataObject],
-    ix: int | None = None
+    draw: st.DrawFn, ty: type[labels.DataObject], ix: int | None = None
 ) -> dict[str, Any]:
     """
     Parametric strategy producing a valid input dictionary for a
@@ -682,46 +692,44 @@ def st_good_DataObject(
             col_obj = labels.ColumnObject
 
         required["schema"] = st.lists(
-            st_good_ColumnObject(col_obj),
-            min_size=1,
-            max_size=5
+            st_good_ColumnObject(col_obj), min_size=1, max_size=5
         )
 
     else:
-        pass # fully handled below
+        pass  # fully handled below
 
     if ty is labels.ASDFDataObject:
         # We don't try to generate anything different for name_regex=True,
         # because generating interesting regexes is a nightmare.
         required["name"] = st.one_of(
-            st_identifier(),
-            st.lists(
-                st_identifier(),
-                max_size=9
-            )
+            st_identifier(), st.lists(st_identifier(), max_size=9)
         )
 
         if fmt == "array":
-            required["objtype"] = st.sampled_from([
-                "ndarray", "numpy.NDArray"
-            ])
+            required["objtype"] = st.sampled_from(["ndarray", "numpy.NDArray"])
         elif fmt == "table":
-            required["objtype"] = st.sampled_from([
-                "table",
-                "astropy.table.table.Table",
-                "pandas.DataFrame",
-            ])
+            required["objtype"] = st.sampled_from(
+                [
+                    "table",
+                    "astropy.table.table.Table",
+                    "pandas.DataFrame",
+                ]
+            )
         else:
             # keep this list in sync with the 'required["value"] =' table below
-            objtype = draw(st.sampled_from([
-                "str",
-                "int",
-                "float",
-                "bool",
-                "null",
-                "list",
-                "dict",
-            ]))
+            objtype = draw(
+                st.sampled_from(
+                    [
+                        "str",
+                        "int",
+                        "float",
+                        "bool",
+                        "null",
+                        "list",
+                        "dict",
+                    ]
+                )
+            )
             required["objtype"] = st.just(objtype)
 
             value_regex = draw(st.booleans())
@@ -731,44 +739,46 @@ def st_good_DataObject(
             else:
                 required["value_regex"] = st.just(value=False)
                 # keep this table in sync with the "objtype =" list above
-                required["value"] = ({
-                    "str": st.text(),
-                    "int": st.integers(),
-                    "float": st.floats(allow_nan=False),
-                    "bool": st.booleans(),
-                    "null": st.just(ExplicitNull),
-                    "list": st.lists(
-                        st.one_of(
-                            # st.text() produces strings that can be confused
-                            # for booleans, integers, and None
-                            st_identifier(),
-                            st.integers(),
-                            st.booleans(),
-                            st.floats(allow_nan=False),
-                            st.just(ExplicitNull),
+                required["value"] = (
+                    {
+                        "str": st.text(),
+                        "int": st.integers(),
+                        "float": st.floats(allow_nan=False),
+                        "bool": st.booleans(),
+                        "null": st.just(ExplicitNull),
+                        "list": st.lists(
+                            st.one_of(
+                                # st.text() produces strings that can be confused
+                                # for booleans, integers, and None
+                                st_identifier(),
+                                st.integers(),
+                                st.booleans(),
+                                st.floats(allow_nan=False),
+                                st.just(ExplicitNull),
+                            ),
+                            max_size=4,
                         ),
-                        max_size=4,
-                    ),
-                    "dict": st.dictionaries(
-                        st.one_of(
-                            # st.text() produces strings that can be confused
-                            # for booleans, integers, and None
-                            st_identifier(),
-                            st.integers(),
-                            st.booleans(),
-                            st.just(ExplicitNull),
+                        "dict": st.dictionaries(
+                            st.one_of(
+                                # st.text() produces strings that can be confused
+                                # for booleans, integers, and None
+                                st_identifier(),
+                                st.integers(),
+                                st.booleans(),
+                                st.just(ExplicitNull),
+                            ),
+                            st.one_of(
+                                # st.text() produces strings that can be confused
+                                # for booleans, integers, and None
+                                st_identifier(),
+                                st.integers(),
+                                st.booleans(),
+                                st.floats(allow_nan=False),
+                                st.just(ExplicitNull),
+                            ),
                         ),
-                        st.one_of(
-                            # st.text() produces strings that can be confused
-                            # for booleans, integers, and None
-                            st_identifier(),
-                            st.integers(),
-                            st.booleans(),
-                            st.floats(allow_nan=False),
-                            st.just(ExplicitNull),
-                        ),
-                    )
-                })[objtype]
+                    }
+                )[objtype]
 
         # metadata is forbidden for ASDF
 
@@ -792,7 +802,7 @@ def st_good_DataObject(
         optional["metadata"] = st.dictionaries(
             st_identifier(),
             st_good_ObjectMetadata(labels.FITSObjectMetadata),
-            max_size=5
+            max_size=5,
         )
 
     elif ty is labels.ParquetDataObject:
@@ -801,7 +811,7 @@ def st_good_DataObject(
         optional["metadata"] = st.dictionaries(
             st_identifier(),
             st_good_ObjectMetadata(labels.ObjectMetadata),
-            max_size=5
+            max_size=5,
         )
 
     elif ty is labels.DataObject:
@@ -810,7 +820,7 @@ def st_good_DataObject(
         optional["metadata"] = st.dictionaries(
             st_identifier(),
             st_good_ObjectMetadata(labels.ObjectMetadata),
-            max_size=5
+            max_size=5,
         )
 
     else:
@@ -827,8 +837,9 @@ def st_good_DataObject(
         return inp
 
     return draw(
-        st.fixed_dictionaries(required, optional=optional)
-        .map(maybe_compile_name_regex)
+        st.fixed_dictionaries(required, optional=optional).map(
+            maybe_compile_name_regex
+        )
     )
 
 
@@ -845,8 +856,7 @@ def check_DataObject(inp: dict[str, Any], obj: labels.DataObject) -> None:
     assert obj.repeated == inp.get("repeated", False)
     # name_regex is forced to True if repeated is True
     assert obj.name_regex == (
-        inp.get("name_regex", False)
-        or inp.get("repeated", False)
+        inp.get("name_regex", False) or inp.get("repeated", False)
     )
 
     if inp.get("schema") is not None:
@@ -863,16 +873,18 @@ def check_DataObject(inp: dict[str, Any], obj: labels.DataObject) -> None:
             check_ObjectMetadata(minp, obj.metadata[mtag])
 
 
-@pytest.mark.parametrize("ty", [
-    labels.DataObject,
-    labels.ASDFDataObject,
-    labels.FITSDataObject,
-    labels.ParquetDataObject,
-])
+@pytest.mark.parametrize(
+    "ty",
+    [
+        labels.DataObject,
+        labels.ASDFDataObject,
+        labels.FITSDataObject,
+        labels.ParquetDataObject,
+    ],
+)
 @given(st.data())  # see kvetching at test_improper_keys
 def test_good_DataObject(
-    ty: type[labels.DataObject],
-    data: st.DataObject
+    ty: type[labels.DataObject], data: st.DataObject
 ) -> None:
     """
     For each concrete DataObject subclass, generate random valid
@@ -889,16 +901,12 @@ def st_good_FiletypeValidationOptions() -> st.SearchStrategy[dict[str, Any]]:
     Strategy producing a valid ObjectMetadata input dictionary.
     """
     return st.fixed_dictionaries(
-        {},
-        optional = {
-            "skip": st.lists(st_identifier(), max_size=3)
-        }
+        {}, optional={"skip": st.lists(st_identifier(), max_size=3)}
     )
 
 
 def check_FiletypeValidationOptions(
-    inp: dict[str, Any],
-    obj: labels.FiletypeValidationOptions
+    inp: dict[str, Any], obj: labels.FiletypeValidationOptions
 ) -> None:
     """
     Test subroutine: Check that a FiletypeValidationOptions object
@@ -908,7 +916,7 @@ def check_FiletypeValidationOptions(
     assert obj.skip == inp.get("skip", [])
 
 
-@given(inp = st_good_FiletypeValidationOptions())
+@given(inp=st_good_FiletypeValidationOptions())
 def test_good_FiletypeValidationOptions(inp: dict[str, Any]) -> None:
     """
     Generate random valid FiletypeValidationOptions input
@@ -925,17 +933,16 @@ def st_good_GlobalValidationOptions() -> st.SearchStrategy[dict[str, Any]]:
     """
     return st.fixed_dictionaries(
         {},
-        optional = {
+        optional={
             "skip": st.lists(st_identifier()),
             "missing_filetypes_ok": st.booleans(),
             "no_assigned_filetype_ok": st.booleans(),
-        }
+        },
     )
 
 
 def check_GlobalValidationOptions(
-    inp: dict[str, Any],
-    obj: labels.GlobalValidationOptions
+    inp: dict[str, Any], obj: labels.GlobalValidationOptions
 ) -> None:
     """
     Test subroutine: Check that a GlobalValidationOptions object agrees
@@ -944,11 +951,12 @@ def check_GlobalValidationOptions(
     assert obj._errors == []
     assert obj.skip == inp.get("skip", [])
     assert obj.missing_filetypes_ok == inp.get("missing_filetypes_ok", False)
-    assert obj.no_assigned_filetype_ok == \
-        inp.get("no_assigned_filetype_ok", False)
+    assert obj.no_assigned_filetype_ok == inp.get(
+        "no_assigned_filetype_ok", False
+    )
 
 
-@given(inp = st_good_GlobalValidationOptions())
+@given(inp=st_good_GlobalValidationOptions())
 def test_good_GlobalValidationOptions(inp: dict[str, Any]) -> None:
     """
     Generate random valid GlobalValidationOptions input dictionaries
@@ -967,9 +975,9 @@ def st_good_DeliveryMeta() -> st.SearchStrategy[dict[str, Any]]:
         {
             "schema_version": st.from_regex("[0-9a-z.]+", fullmatch=True),
         },
-        optional = {
+        optional={
             "global_validation_options": st_good_GlobalValidationOptions(),
-        }
+        },
     )
 
 
@@ -981,12 +989,11 @@ def check_DeliveryMeta(inp: dict[str, Any], obj: labels.DeliveryMeta) -> None:
     assert obj._errors == []
     assert obj.schema_version == inp.get("schema_version", None)
     check_GlobalValidationOptions(
-        inp.get("global_validation_options", {}),
-        obj.global_validation_options
+        inp.get("global_validation_options", {}), obj.global_validation_options
     )
 
 
-@given(inp = st_good_DeliveryMeta())
+@given(inp=st_good_DeliveryMeta())
 def test_good_DeliveryMeta(inp: dict[str, Any]) -> None:
     """
     Generate random valid DeliveryMeta input dictionaries and verify
@@ -998,10 +1005,7 @@ def test_good_DeliveryMeta(inp: dict[str, Any]) -> None:
 
 @st.composite
 def st_good_FilePattern(
-    draw: st.DrawFn,
-    std: str,
-    *,
-    include: bool | None = None
+    draw: st.DrawFn, std: str, *, include: bool | None = None
 ) -> dict[str, Any]:
     """
     Strategy producing a valid FilePattern input dictionary.
@@ -1010,10 +1014,16 @@ def st_good_FilePattern(
     compression = draw(st.sampled_from(["", ".gz", ".zstd", ".bz2", ".xz"]))
     pattern = re_compile(f"{file_stem}\\.{std}{compression}")
 
-    return draw(st.fixed_dictionaries({
-        "pattern": st.just(pattern),
-        "include": st.just(include) if include is not None else st.booleans()
-    }))
+    return draw(
+        st.fixed_dictionaries(
+            {
+                "pattern": st.just(pattern),
+                "include": st.just(include)
+                if include is not None
+                else st.booleans(),
+            }
+        )
+    )
 
 
 def check_FilePattern(inp: dict[str, Any], obj: labels.FilePattern) -> None:
@@ -1049,10 +1059,7 @@ def st_good_DataObject_list(
         n = 1  # Parquet Filetypes always contain exactly one DataObject
     else:
         n = draw(st.integers(min_value=1, max_value=5))
-    return [
-        draw(st_good_DataObject(ty, ix=ix))
-        for ix in range(n)
-    ]
+    return [draw(st_good_DataObject(ty, ix=ix)) for ix in range(n)]
 
 
 @st.composite
@@ -1061,13 +1068,12 @@ def st_good_Filetype(draw: st.DrawFn, std: str) -> dict[str, Any]:
     optional: dict[str, st.SearchStrategy] = {}
 
     # the filenames field must always have at least one include pattern
-    filenames = [ draw(st_good_FilePattern(std, include=True)) ]
-    filenames.extend(draw(st.lists(
-        st_good_FilePattern(std),
-        min_size=0, max_size=3
-    )))
+    filenames = [draw(st_good_FilePattern(std, include=True))]
+    filenames.extend(
+        draw(st.lists(st_good_FilePattern(std), min_size=0, max_size=3))
+    )
     # and all the exclude patterns must be sorted after all the include patterns
-    filenames.sort(key = lambda fp: (not fp["include"], fp["pattern"].pattern))
+    filenames.sort(key=lambda fp: (not fp["include"], fp["pattern"].pattern))
 
     required["filename"] = st.just(filenames)
 
@@ -1076,14 +1082,15 @@ def st_good_Filetype(draw: st.DrawFn, std: str) -> dict[str, Any]:
         required["ignore"] = st.just(ignore)
     else:
         required["standard"] = st.just(std)
-        optional["validation_options"] = \
-            st_good_FiletypeValidationOptions()
+        optional["validation_options"] = st_good_FiletypeValidationOptions()
 
-        data_obj_class: type[labels.DataObject] | None = ({
-            "asdf": labels.ASDFDataObject,
-            "fits": labels.FITSDataObject,
-            "parquet": labels.ParquetDataObject
-        }).get(std)
+        data_obj_class: type[labels.DataObject] | None = (
+            {
+                "asdf": labels.ASDFDataObject,
+                "fits": labels.FITSDataObject,
+                "parquet": labels.ParquetDataObject,
+            }
+        ).get(std)
         if data_obj_class is not None:
             optional["objects"] = st_good_DataObject_list(data_obj_class)
 
@@ -1099,8 +1106,7 @@ def check_Filetype(inp: dict[str, Any], obj: labels.Filetype) -> None:
     assert obj.ignore == inp.get("ignore", False)
     assert obj.standard == inp.get("standard", "unspecified")
     check_FiletypeValidationOptions(
-        inp.get("validation_options", {}),
-        obj.validation_options
+        inp.get("validation_options", {}), obj.validation_options
     )
     for pinp, pobj in zip(inp.get("filename", []), obj.filename):
         check_FilePattern(pinp, pobj)
@@ -1133,22 +1139,24 @@ def st_good_Label() -> st.SearchStrategy[dict[str, Any]]:
             "time": st_good_TimeInfo(),
             "delivery_meta": st_good_DeliveryMeta(),
         },
-        optional = {
+        optional={
             "contacts": st_good_Contacts(),
             "shared_name_patterns": st.dictionaries(
-                st_identifier(), st_identifier(),
+                st_identifier(),
+                st_identifier(),
             ),
             "filetypes": st.dictionaries(
                 st_identifier(),
-                st.sampled_from(ALL_TESTED_FILETYPES).flatmap(st_good_Filetype)
+                st.sampled_from(ALL_TESTED_FILETYPES).flatmap(
+                    st_good_Filetype
+                ),
             ),
             # a crude approximation; custom_metadata is supposed to
             # accept *anything*
             "custom_metadata": st.dictionaries(
-                st_identifier(),
-                st.one_of(st.integers(), st_identifier())
+                st_identifier(), st.one_of(st.integers(), st_identifier())
             ),
-        }
+        },
     )
 
 
@@ -1174,7 +1182,7 @@ def check_Label(inp: dict[str, Any], obj: labels.Label) -> None:
         check_Filetype(inp_filetypes[k], obj.filetypes[k])
 
 
-@given(inp = st_good_Label())
+@given(inp=st_good_Label())
 def test_good_Label(inp: dict[str, Any]) -> None:
     """
     Generate random valid Label input dictionaries and verify

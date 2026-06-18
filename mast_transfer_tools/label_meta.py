@@ -38,9 +38,10 @@ from typing import (
 )
 
 from re import Pattern, compile as re_compile
+
 # re.error was renamed to re.PatternError in 3.13
 try:
-    from re import PatternError     # type: ignore[attr-defined,unused-ignore]
+    from re import PatternError  # type: ignore[attr-defined,unused-ignore]
 except ImportError:
     from re import error as PatternError
 
@@ -49,8 +50,9 @@ try:
     from annotationlib import (  # type: ignore[import-not-found]
         Format,
         call_annotate_function,
-        get_annotate_from_class_namespace
+        get_annotate_from_class_namespace,
     )
+
     def _get_class_annotations(body: dict[str, Any]) -> dict[str, Any]:
         # intentionally using Format.VALUE instead of Format.FORWARDREF
         # so that this behaves as closely as possible to the <=3.13 semantics
@@ -63,15 +65,17 @@ try:
         assert isinstance(anns, dict)
         return anns
 except ImportError:
+
     def _get_class_annotations(body: dict[str, Any]) -> dict[str, Any]:
         anns = body.get("__annotations__", {})
         assert isinstance(anns, dict)
         return anns
 
+
 # we need to use a couple of internal dataclasses thingies
-from dataclasses import (   # type:ignore[attr-defined]
+from dataclasses import (  # type:ignore[attr-defined]
     _FIELDS as dc_FIELDS,
-    _is_classvar as is_classvar
+    _is_classvar as is_classvar,
 )
 
 from dateutil.parser import (
@@ -83,8 +87,10 @@ from yaml import (
     compose as yaml_compose,
     serialize as yaml_serialize,
     BaseLoader,
-    MappingNode, ScalarNode, SequenceNode,
-    Node as YAMLAny
+    MappingNode,
+    ScalarNode,
+    SequenceNode,
+    Node as YAMLAny,
 )
 
 from mast_transfer_tools.utilz.english import a_type
@@ -95,9 +101,9 @@ LE = TypeVar("LE", bound="LabelElement")
 FieldType: TypeAlias = type | GenericAlias | UnionType
 FieldNode: TypeAlias = YAMLAny
 
-EXPECTED_SCALAR_TAG   = "tag:yaml.org,2002:str"
+EXPECTED_SCALAR_TAG = "tag:yaml.org,2002:str"
 EXPECTED_SEQUENCE_TAG = "tag:yaml.org,2002:seq"
-EXPECTED_MAPPING_TAG  = "tag:yaml.org,2002:map"
+EXPECTED_MAPPING_TAG = "tag:yaml.org,2002:map"
 
 __all__ = (
     "DecodingError",
@@ -130,7 +136,6 @@ __all__ = (
 )
 
 
-
 class ExplicitNullT:
     """
     Pythonic 'None' in a field's type always means "this field can be
@@ -159,11 +164,13 @@ class ExplicitNullT:
     def __repr__(self) -> str:
         return "ExplicitNull"
 
+
 ExplicitNull = ExplicitNullT()
 
 
 class DecodingError(ValueError):
     """Represents failure to decode a value from the YAML representation."""
+
     def __init__(self, lpath: str, message: str):
         # We define __init__ solely to enforce that all callers pass
         # exactly two arguments.
@@ -198,9 +205,7 @@ class BaseLabelElement:
 
     # Instance properties present in all LabelElement subclasses
     lpath: str = "/"
-    _errors: list[tuple[str, str]] = dataclasses.field(
-        default_factory = list
-    )
+    _errors: list[tuple[str, str]] = dataclasses.field(default_factory=list)
 
 
 _NON_YAML_FIELDS = frozenset(
@@ -208,7 +213,7 @@ _NON_YAML_FIELDS = frozenset(
 )
 
 
-_FIELD_TAG_REQUIRED   = "label_meta.required"
+_FIELD_TAG_REQUIRED = "label_meta.required"
 _FIELD_TAG_DECODE_IND = "label_meta.decode_ind"
 _FIELD_TAG_DECODE_DEP = "label_meta.decode_dep"
 
@@ -218,9 +223,9 @@ def special_field(
     *,
     required: bool = False,
     decode_value: Callable[[FieldNode, str], Any] | None = None,
-    decode_with_spec:
-        Callable[[FieldNode, str, dict[str, Any]], Any] | None = None,
-    **kwargs: Any
+    decode_with_spec: Callable[[FieldNode, str, dict[str, Any]], Any]
+    | None = None,
+    **kwargs: Any,
 ) -> Any:
     """This function wraps dataclasses.field and adds some additional
     ways fields can have special properties.  Use it in preference to
@@ -278,7 +283,7 @@ def special_field(
     our_metadata = {
         _FIELD_TAG_REQUIRED: required,
         _FIELD_TAG_DECODE_IND: decode_value,
-        _FIELD_TAG_DECODE_DEP: decode_with_spec
+        _FIELD_TAG_DECODE_DEP: decode_with_spec,
     }
 
     if "metadata" not in kwargs or kwargs["metadata"] is None:
@@ -301,6 +306,7 @@ class LabelMeta(type):
     Metaclass to be applied to LabelElement.
     See LabelElement for documentation.
     """
+
     def __new__(
         cls, cname: str, bases: tuple[type, ...], body: dict[str, Any]
     ) -> "LabelMeta":
@@ -312,7 +318,7 @@ class LabelMeta(type):
             # uncomment the next line and change "slots":False to "slots":True
             # in LABEL_ELEMENT_DATACLASS_OPTIONS if you feel like trying to
             # debug this
-            #return type.__new__(cls, cname, bases, body)
+            # return type.__new__(cls, cname, bases, body)
             raise NotImplementedError("LabelElement.__slots__")
 
         annotations = _get_class_annotations(body)
@@ -335,10 +341,10 @@ class LabelMeta(type):
         label_element_class = dataclasses.dataclass(
             **LABEL_ELEMENT_DATACLASS_OPTIONS
         )
-        klass: "LabelMeta" = label_element_class(   # type:ignore[assignment]
-            type.__new__(cls, cname, bases, body)   # type:ignore[arg-type]
+        klass: "LabelMeta" = label_element_class(  # type:ignore[assignment]
+            type.__new__(cls, cname, bases, body)  # type:ignore[arg-type]
         )
-        fields = dataclasses.fields(klass)          # type:ignore[arg-type]
+        fields = dataclasses.fields(klass)  # type:ignore[arg-type]
 
         attrs = {}
         ind_attrs = []
@@ -498,7 +504,7 @@ class LabelElement(BaseLabelElement, metaclass=LabelMeta):
         All validation errors observed for this element and its descendants,
         as a dictionary { path : [problems] }.
         """
-        errs = { path: [problem] for path, problem in self._errors }
+        errs = {path: [problem] for path, problem in self._errors}
         for c in self.children:
             for path, problems in c.errors.items():
                 probs = errs.setdefault(path, [])
@@ -537,7 +543,7 @@ class LabelElement(BaseLabelElement, metaclass=LabelMeta):
         """
         spec, errors = decode_label(cls, raw_spec, lpath)
         errors.extend(cls._validate_label(spec, lpath))
-        return cls(lpath = lpath, _errors = errors, **spec)
+        return cls(lpath=lpath, _errors=errors, **spec)
 
     @classmethod
     def from_blank(cls: type[Self], lpath: str = "/") -> Self:
@@ -546,16 +552,13 @@ class LabelElement(BaseLabelElement, metaclass=LabelMeta):
         The result might have errors.
         """
         return cls.from_yaml(
-            MappingNode(tag=EXPECTED_MAPPING_TAG, value=[]),
-            lpath
+            MappingNode(tag=EXPECTED_MAPPING_TAG, value=[]), lpath
         )
 
     @classmethod
     def from_text(cls, text: str, lpath: str = "/") -> Self:
         """Parse a YAML-format label from the string TEXT."""
-        return cls.from_yaml(
-            yaml_compose(text, Loader=BaseLoader)
-        )
+        return cls.from_yaml(yaml_compose(text, Loader=BaseLoader))
 
     def as_yaml(self) -> FieldNode:
         """Produce the YAML representation tree corresponding to self."""
@@ -577,7 +580,7 @@ class LabelElement(BaseLabelElement, metaclass=LabelMeta):
 
 def field_holds_child_attrs(field: dataclasses.Field[Any]) -> bool:
     """True if the field 'field' can hold LabelElement objects,
-       either directly or as values in a list or dict."""
+    either directly or as values in a list or dict."""
 
     def type_holds_child_attrs(ty: FieldType) -> bool:
         if isinstance(ty, GenericAlias):
@@ -592,9 +595,7 @@ def field_holds_child_attrs(field: dataclasses.Field[Any]) -> bool:
                 # Pattern[str] or Pattern[bytes] in field decls
                 return False
             else:
-                raise NotImplementedError(
-                    f"don't know what to do with {ty!r}"
-                )
+                raise NotImplementedError(f"don't know what to do with {ty!r}")
         elif isinstance(ty, UnionType):
             return any(type_holds_child_attrs(t) for t in type_args(ty))
         else:
@@ -605,8 +606,7 @@ def field_holds_child_attrs(field: dataclasses.Field[Any]) -> bool:
 
 
 def adjust_field_default(
-    ty: FieldType,
-    default: Any
+    ty: FieldType, default: Any
 ) -> dataclasses.Field[Any]:
     """
     Given a LabelElement field type TY and its default value DEFAULT
@@ -628,9 +628,7 @@ def adjust_field_default(
     properties are filled in.
     """
     if not isinstance(ty, (type, GenericAlias, UnionType)):
-        raise NotImplementedError(
-            f"bug: don't know what to do with {ty!r}"
-        )
+        raise NotImplementedError(f"bug: don't know what to do with {ty!r}")
 
     if isinstance(default, dataclasses.Field):
         # dataclasses.Field.metadata is a read-only MappingProxyType
@@ -707,10 +705,9 @@ def decode_label(
     element is valid as far as this function can tell; the class's
     _validate_label hook may add more errors.
     """
+
     def field_default(
-        lp: str,
-        field: str,
-        desc: dataclasses.Field[Any]
+        lp: str, field: str, desc: dataclasses.Field[Any]
     ) -> Any:
         if isinstance(desc.type, type) and issubclass(desc.type, LabelElement):
             # special case for fields that directly contain label elements
@@ -741,33 +738,36 @@ def decode_label(
     for key_node, value_node in spec_items:
         if not isinstance(key_node, ScalarNode):
             if not non_scalar_key_error:
-                errors.append((
-                    lpath, "syntax error; all property names must be strings"
-                ))
+                errors.append(
+                    (lpath, "syntax error; all property names must be strings")
+                )
                 non_scalar_key_error = True
             continue
 
         field = key_node.value
         if key_node.tag != EXPECTED_SCALAR_TAG:
-            errors.append((
-                f"{lp}/{field}",
-                "syntax error; explicit YAML tags may not be used"
-            ))
+            errors.append(
+                (
+                    f"{lp}/{field}",
+                    "syntax error; explicit YAML tags may not be used",
+                )
+            )
             continue
 
         if field not in cls._attributes:
-            errors.append((
-                f"{lp}/{field}",
-                f"not a valid property for {a_type(cls)}"
-            ))
+            errors.append(
+                (f"{lp}/{field}", f"not a valid property for {a_type(cls)}")
+            )
             continue
 
         if field in spec:
             if field not in duplicate_key_errors:
-                errors.append((
-                    f"{lp}/{field}",
-                    "property appears twice or more in this element"
-                ))
+                errors.append(
+                    (
+                        f"{lp}/{field}",
+                        "property appears twice or more in this element",
+                    )
+                )
                 duplicate_key_errors.add(field)
             continue
 
@@ -841,13 +841,11 @@ def decode_as_scalar(val: FieldNode, lpath: str) -> str:
     """Decode YAML value 'val' as a scalar quantity."""
     if not isinstance(val, ScalarNode):
         raise DecodingError(
-            lpath,
-            f"wrong type; expected a scalar, not {a_type(val)}"
+            lpath, f"wrong type; expected a scalar, not {a_type(val)}"
         )
     if val.tag != EXPECTED_SCALAR_TAG:
         raise DecodingError(
-            lpath,
-            "syntax error; explicit YAML tags may not be used"
+            lpath, "syntax error; explicit YAML tags may not be used"
         )
 
     val = val.value
@@ -860,13 +858,11 @@ def decode_as_sequence(val: FieldNode, lpath: str) -> list[FieldNode]:
     """Decode YAML value 'val' as a sequence."""
     if not isinstance(val, SequenceNode):
         raise DecodingError(
-            lpath,
-            f"wrong type; expected a sequence, not {a_type(val)}"
+            lpath, f"wrong type; expected a sequence, not {a_type(val)}"
         )
     if val.tag != EXPECTED_SEQUENCE_TAG:
         raise DecodingError(
-            lpath,
-            "syntax error; explicit YAML tags may not be used"
+            lpath, "syntax error; explicit YAML tags may not be used"
         )
 
     val = val.value
@@ -888,13 +884,11 @@ def decode_as_mapping(
     """Decode YAML value 'val' as a mapping."""
     if not isinstance(val, MappingNode):
         raise DecodingError(
-            lpath,
-            f"wrong type; expected a mapping, not {a_type(val)}"
+            lpath, f"wrong type; expected a mapping, not {a_type(val)}"
         )
     if val.tag != EXPECTED_MAPPING_TAG:
         raise DecodingError(
-            lpath,
-            "syntax error; explicit YAML tags may not be used"
+            lpath, "syntax error; explicit YAML tags may not be used"
         )
 
     val = val.value
@@ -903,14 +897,15 @@ def decode_as_mapping(
             f"expected list in MappingNode, got {a_type(val)}"
         )
     for v in val:
-        if not isinstance(v, tuple) \
-           or not isinstance(v[0], FieldNode) \
-           or not isinstance(v[1], FieldNode):
+        if (
+            not isinstance(v, tuple)
+            or not isinstance(v[0], FieldNode)
+            or not isinstance(v[1], FieldNode)
+        ):
             raise AssertionError(
                 f"expected list of kv pairs in MappingNode, got {a_type(val)}"
             )
     return val
-
 
 
 def decode_as_str(val: FieldNode, lpath: str) -> str:
@@ -964,8 +959,7 @@ def decode_as_float(val: FieldNode, lpath: str) -> float:
     except ValueError:
         # as with 'int', substitute a better error message
         raise DecodingError(
-            lpath,
-            f"bad value; {val!r} could not be parsed as a real number"
+            lpath, f"bad value; {val!r} could not be parsed as a real number"
         ) from None
 
 
@@ -988,8 +982,7 @@ def decode_as_bool(val: FieldNode, lpath: str) -> bool:
         return False
 
     raise DecodingError(
-        lpath,
-        f"bad value; {val!r} could not be parsed as a boolean value"
+        lpath, f"bad value; {val!r} could not be parsed as a boolean value"
     )
 
 
@@ -1002,8 +995,7 @@ def decode_as_date(val: FieldNode, lpath: str) -> date:
 
     except DateParseError as e:
         raise DecodingError(
-            lpath,
-            f"bad value; {val!r} could not be parsed as a date ({e})"
+            lpath, f"bad value; {val!r} could not be parsed as a date ({e})"
         ) from None
 
 
@@ -1011,7 +1003,7 @@ def decode_as_regex(
     val: FieldNode,
     lpath: str,
     *,
-    adjust_pattern: Callable[[str], str] | None = None
+    adjust_pattern: Callable[[str], str] | None = None,
 ) -> Pattern[str]:
     """Decode YAML value 'val' as a regex."""
     pat = decode_as_scalar(val, lpath)
@@ -1024,8 +1016,7 @@ def decode_as_regex(
 
     except PatternError as e:
         raise DecodingError(
-            lpath,
-            f"bad value; {pat!r} could not be parsed as a regex ({e})"
+            lpath, f"bad value; {pat!r} could not be parsed as a regex ({e})"
         ) from None
 
 
@@ -1042,7 +1033,7 @@ def decode_as_explicit_null(val: FieldNode, lpath: str) -> ExplicitNullT:
 
     raise DecodingError(
         lpath,
-        f"bad value; {val!r} could not be parsed as an explicit null value"
+        f"bad value; {val!r} could not be parsed as an explicit null value",
     )
 
 
@@ -1069,10 +1060,7 @@ def decode_as_list(
     else:
         items = decode_as_sequence(val, lpath)
 
-    return [
-        decode_element(item, f"{lp}/{i}")
-        for i, item in enumerate(items)
-    ]
+    return [decode_element(item, f"{lp}/{i}") for i, item in enumerate(items)]
 
 
 def decode_as_dict(
@@ -1110,8 +1098,7 @@ def decode_as_element(
     """
     if not isinstance(val, MappingNode):
         raise DecodingError(
-            lpath,
-            f"wrong type; expected {a_type(element)}, not {a_type(val)}"
+            lpath, f"wrong type; expected {a_type(element)}, not {a_type(val)}"
         )
     return element.from_yaml(val, lpath)
 
@@ -1125,7 +1112,7 @@ def decode_as_union(
     seq_alts: Sequence[Callable[[FieldNode, str], Any]] = (),
     seq_exp_t: FieldType,
     map_alts: Sequence[Callable[[FieldNode, str], Any]] = (),
-    map_exp_t: FieldType
+    map_exp_t: FieldType,
 ) -> Any:
     if isinstance(val, ScalarNode):
         alts = scalar_alts
@@ -1161,14 +1148,12 @@ def decode_as_union(
                 acceptable = "a scalar value, a sequence, or a mapping"
 
         raise DecodingError(
-            lpath,
-            f"wrong type; expected {acceptable}, not {a_type(val)}"
+            lpath, f"wrong type; expected {acceptable}, not {a_type(val)}"
         )
 
     if val.tag != exp_tag:
         raise DecodingError(
-            lpath,
-            "syntax error; explicit YAML tags may not be used"
+            lpath, "syntax error; explicit YAML tags may not be used"
         )
 
     if len(alts) == 1:
@@ -1181,10 +1166,8 @@ def decode_as_union(
             pass
 
     raise TypeError(
-        lpath,
-        f"bad value; could not parse {val!r} as any of: {a_type(exp_t)}"
+        lpath, f"bad value; could not parse {val!r} as any of: {a_type(exp_t)}"
     )
-
 
 
 def make_decoder_for_union(
@@ -1220,7 +1203,11 @@ def make_decoder_for_union(
     # the time we get here.
     scalar_alts: list[None | Callable[[Any, str], Any]] = [
         # int, float, bool, null, str
-        None, None, None, None, None
+        None,
+        None,
+        None,
+        None,
+        None,
     ]
     scalar_exp_t: list[type | GenericAlias | UnionType] = []
 
@@ -1264,18 +1251,16 @@ def make_decoder_for_union(
                 map_alts.append(make_decoder_for_type(alt))
                 continue
 
-        raise NotImplementedError(
-            f"don't know what to do with {alt!r}"
-        )
+        raise NotImplementedError(f"don't know what to do with {alt!r}")
 
     return partial(
         decode_as_union,
-        scalar_alts = tuple(d for d in scalar_alts if d is not None),
-        scalar_exp_t = make_type_union(scalar_exp_t),
-        seq_alts = tuple(seq_alts),
-        seq_exp_t = make_type_union(seq_exp_t),
-        map_alts = tuple(map_alts),
-        map_exp_t = make_type_union(map_exp_t),
+        scalar_alts=tuple(d for d in scalar_alts if d is not None),
+        scalar_exp_t=make_type_union(scalar_exp_t),
+        seq_alts=tuple(seq_alts),
+        seq_exp_t=make_type_union(seq_exp_t),
+        map_alts=tuple(map_alts),
+        map_exp_t=make_type_union(map_exp_t),
     )
 
 
@@ -1306,8 +1291,7 @@ def make_decoder_for_type(
                 return make_decoder_for_type(t, scalar_only=scalar_only)
             case many_alternatives:
                 return make_decoder_for_union(
-                    many_alternatives,
-                    scalar_only=scalar_only
+                    many_alternatives, scalar_only=scalar_only
                 )
 
     base_type = type_origin(field_type)
@@ -1337,8 +1321,7 @@ def make_decoder_for_type(
         args = type_args(field_type)
         assert len(args) == 1
         return partial(
-            decode_as_list,
-            decode_element=make_decoder_for_type(args[0])
+            decode_as_list, decode_element=make_decoder_for_type(args[0])
         )
 
     if base_type is dict:
@@ -1355,9 +1338,7 @@ def make_decoder_for_type(
     if isinstance(base_type, type) and issubclass(base_type, LabelElement):
         return partial(decode_as_element, element=base_type)
 
-    raise NotImplementedError(
-        f"bug: don't know how to decode {field_type!r}"
-    )
+    raise NotImplementedError(f"bug: don't know how to decode {field_type!r}")
 
 
 def to_yaml_repr(datum: Any) -> FieldNode:
@@ -1374,10 +1355,7 @@ def to_yaml_repr(datum: Any) -> FieldNode:
             if v is None:
                 continue
             kvlist.append((to_yaml_repr(k), to_yaml_repr(v)))
-        return MappingNode(
-            tag   = EXPECTED_MAPPING_TAG,
-            value = kvlist
-        )
+        return MappingNode(tag=EXPECTED_MAPPING_TAG, value=kvlist)
 
     if isinstance(datum, dict):
         kvlist = []
@@ -1387,10 +1365,7 @@ def to_yaml_repr(datum: Any) -> FieldNode:
                     f"to_yaml_repr: bug: None as dict value (key: {k!r})"
                 )
             kvlist.append((to_yaml_repr(k), to_yaml_repr(v)))
-        return MappingNode(
-            tag   = EXPECTED_MAPPING_TAG,
-            value = kvlist
-        )
+        return MappingNode(tag=EXPECTED_MAPPING_TAG, value=kvlist)
 
     if isinstance(datum, (list, tuple)):
         vlist = []
@@ -1398,16 +1373,10 @@ def to_yaml_repr(datum: Any) -> FieldNode:
             if v is None:
                 raise AssertionError("to_yaml_repr: bug: None as list element")
             vlist.append(to_yaml_repr(v))
-        return SequenceNode(
-            tag   = EXPECTED_SEQUENCE_TAG,
-            value = vlist
-        )
+        return SequenceNode(tag=EXPECTED_SEQUENCE_TAG, value=vlist)
 
     if isinstance(datum, str):
-        return ScalarNode(
-            tag   = EXPECTED_SCALAR_TAG,
-            value = datum
-        )
+        return ScalarNode(tag=EXPECTED_SCALAR_TAG, value=datum)
 
     if isinstance(datum, bool):
         return to_yaml_repr("true" if datum else "false")

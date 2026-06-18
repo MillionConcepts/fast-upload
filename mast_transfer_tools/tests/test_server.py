@@ -16,7 +16,8 @@ import mast_transfer_tools.server.core as validation_core_mod
 import mast_transfer_tools.validation
 from mast_transfer_tools.labels import Label
 from mast_transfer_tools.server.core import (
-    ValidationManager, ValidationSession
+    ValidationManager,
+    ValidationSession,
 )
 from mast_transfer_tools.server.state import ValidationState
 from mast_transfer_tools.s3log.helpers import LOG_FIELD_SPEC
@@ -87,20 +88,22 @@ time:
 
 
 def make_sci_fits_blob(dtype: str) -> bytes:
-    hdul = HDUList([
-        PrimaryHDU(),
-        ImageHDU(
-            np.arange(4, dtype=dtype).reshape(2, 2),
-            name="SCI",
-        ),
-    ])
+    hdul = HDUList(
+        [
+            PrimaryHDU(),
+            ImageHDU(
+                np.arange(4, dtype=dtype).reshape(2, 2),
+                name="SCI",
+            ),
+        ]
+    )
     ostream = BytesIO()
     hdul.writeto(ostream)
     return ostream.getvalue()
 
 
 def fake_loader_for_validation_server_fits_test(
-    standard: str
+    standard: str,
 ) -> Callable[[str, FakeMutableBucket], HDUList]:
     assert standard.lower() == "fits"
 
@@ -113,7 +116,7 @@ def fake_loader_for_validation_server_fits_test(
 
 
 def bucket_factory_for(
-    registry: FakeBucketRegistry
+    registry: FakeBucketRegistry,
 ) -> Callable[[str, ...], FakeMutableBucket]:
     """Return the Bucket replacement used by validation-core construction."""
 
@@ -126,7 +129,6 @@ def bucket_factory_for(
 
 
 class FakeSQSClient:
-
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         pass
 
@@ -308,27 +310,19 @@ class ValidationServerRig:
 
     def validation_log(self) -> list[dict[str, Any]]:
         return [
-            row for row in self.logger.rows
-            if row["category"] == "validation"
+            row for row in self.logger.rows if row["category"] == "validation"
         ]
 
     def shutdown_log(self) -> list[dict[str, Any]]:
         return [
-            row for row in self.logger.rows
-            if row["category"] == "shutdown"
+            row for row in self.logger.rows if row["category"] == "shutdown"
         ]
 
     def stop_log(self) -> list[dict[str, Any]]:
-        return [
-            row for row in self.logger.rows
-            if row["category"] == "stop"
-        ]
+        return [row for row in self.logger.rows if row["category"] == "stop"]
 
     def validator_statuses(self) -> dict[str, str]:
-        return {
-            row["ref"]: row["status"]
-            for row in self.validation_log()
-        }
+        return {row["ref"]: row["status"] for row in self.validation_log()}
 
 
 def make_validation_server_rig(
@@ -453,8 +447,7 @@ def test_validation_session_happy_path_head_only(
 
         assert rig.index.set_index("path").loc["alpha.txt", "status"] == "ok"
         assert (
-            rig.index.set_index("path")
-            .loc["nested/beta.txt", "status"]
+            rig.index.set_index("path").loc["nested/beta.txt", "status"]
             == "ok"
         )
 
@@ -507,8 +500,7 @@ def test_validation_session_happy_path_fits(
         assert len(rig.stop_log()) == 1
 
         assert (
-            rig.index.set_index("path")
-            .loc["science/example.fits", "status"]
+            rig.index.set_index("path").loc["science/example.fits", "status"]
             == "ok"
         )
 
@@ -568,8 +560,7 @@ def test_validation_session_val_failure_fits(
         assert len(rig.stop_log()) == 1
 
         assert (
-            rig.index.set_index("path")
-            .loc["science/example.fits", "status"]
+            rig.index.set_index("path").loc["science/example.fits", "status"]
             == "failure"
         )
 

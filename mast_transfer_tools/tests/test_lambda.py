@@ -12,7 +12,10 @@ import yaml
 import mast_transfer_tools.config as conf
 import mast_transfer_tools.lambda_.core as lambda_core
 import mast_transfer_tools.utilz.name_reference as names
-from mast_transfer_tools.tests.mock_buckets import FakeBucketRegistry, FakeMutableBucket
+from mast_transfer_tools.tests.mock_buckets import (
+    FakeBucketRegistry,
+    FakeMutableBucket,
+)
 
 DATASET = "dataset-one"
 DELIVERY_ID = "delivery-one"
@@ -62,7 +65,9 @@ class FakeSSMClient:
         self.tags = dict(RESOURCE_TAGS if tags is None else tags)
         self.calls: list[dict[str, Any]] = []
 
-    def get_parameter(self, *, Name: str, WithDecryption: bool) -> dict[str, Any]:
+    def get_parameter(
+        self, *, Name: str, WithDecryption: bool
+    ) -> dict[str, Any]:
         self.calls.append({"Name": Name, "WithDecryption": WithDecryption})
         if WithDecryption is not True:
             raise ValueError("Lambda must request decrypted parameters")
@@ -93,7 +98,9 @@ class FakeECSTask:
     """Fake ECSTask with controllable logs."""
 
     def __init__(self, _task: dict[str, Any], logs: list[str] | None = None):
-        self.logs = ["Initializing pipeline for tests"] if logs is None else logs
+        self.logs = (
+            ["Initializing pipeline for tests"] if logs is None else logs
+        )
         self.wait_calls: list[dict[str, Any]] = []
 
     def wait_while_pending(self, *, timeout: int) -> None:

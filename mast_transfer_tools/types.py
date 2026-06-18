@@ -70,6 +70,7 @@ class PipelineNetworkConfig(TypedDict):
     pipeline but not for initial client auth. Components are expected to fetch
     them from Parameter Store.
     """
+
     AVAILABILITY_ZONE_ID: str
     BUCKET_STEM: str
     CONFIG_BUCKET: str
@@ -96,6 +97,7 @@ class ValidationSQSReport(TypedDict):
     Format for SQS message sent by validation pipeline on exit
     (assuming successful init). Dumped to JSON in actual message.
     """
+
     dataset: str
     delivery_id: str
     completed_at: str
@@ -104,4 +106,3 @@ class ValidationSQSReport(TypedDict):
     details: ValidationDetails
     validation_result: ValidationStatus
     pipeline_exception: str  # "None" if no exception
-

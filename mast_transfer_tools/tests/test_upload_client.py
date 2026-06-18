@@ -13,9 +13,15 @@ from typing import Any, Callable, Mapping, Sequence
 import pandas as pd
 import pytest
 
-from mast_transfer_tools.tests.mock_buckets import FakeBucketRegistry, FakeMutableBucket
+from mast_transfer_tools.tests.mock_buckets import (
+    FakeBucketRegistry,
+    FakeMutableBucket,
+)
 import mast_transfer_tools.upload.client as upload_client_mod
-from mast_transfer_tools.tests.mock_s3log import MockS3TSVReader, MockS3TSVWriter
+from mast_transfer_tools.tests.mock_s3log import (
+    MockS3TSVReader,
+    MockS3TSVWriter,
+)
 from mast_transfer_tools.upload.client import UploadClient
 import mast_transfer_tools.utilz.name_reference as names
 import mast_transfer_tools.config as conf
@@ -26,23 +32,20 @@ DELIVERY_ID = "delivery-one"
 TRANSFER_TYPE = "staging"
 
 NETCONF_PARAMS = {
-    'LOCK_STALENESS_THRESHOLD': 3600,
-    'BUCKET_STEM': 'test-buckets',
-    'AVAILABILITY_ZONE_ID': 'use1-az1',
-    'INIT_LAMBDA_ARN': "arn:aws:lambda:test-region:123:function:test-init"
+    "LOCK_STALENESS_THRESHOLD": 3600,
+    "BUCKET_STEM": "test-buckets",
+    "AVAILABILITY_ZONE_ID": "use1-az1",
+    "INIT_LAMBDA_ARN": "arn:aws:lambda:test-region:123:function:test-init",
 }
 
 CONTROL_BUCKET = names.control_bucket(
-    NETCONF_PARAMS['BUCKET_STEM'],
+    NETCONF_PARAMS["BUCKET_STEM"],
     DATASET,
     DELIVERY_ID,
-    NETCONF_PARAMS["AVAILABILITY_ZONE_ID"]
+    NETCONF_PARAMS["AVAILABILITY_ZONE_ID"],
 )
 TRANSFER_BUCKET = names.transfer_bucket(
-    NETCONF_PARAMS['BUCKET_STEM'],
-    DATASET,
-    DELIVERY_ID,
-    TRANSFER_TYPE
+    NETCONF_PARAMS["BUCKET_STEM"], DATASET, DELIVERY_ID, TRANSFER_TYPE
 )
 AGENT_ID = "client-agent-1"
 
@@ -123,14 +126,15 @@ class FakeSSMClient:
     """
 
     def get_parameter(
-        self, Name: str, WithDecryption: bool     # noqa: FBT001
+        self,
+        Name: str,
+        WithDecryption: bool,  # noqa: FBT001
     ) -> dict[str, dict[str, str]]:
         if WithDecryption is not True:
             raise ValueError("WithDecryption munst be True")
         if Name != conf.NETWORK_CONFIG_PARAMETER:
             raise ValueError(
-                "Name must be the configured value of "
-                "NETWORK_CONFIG_PARAMETER"
+                "Name must be the configured value of NETWORK_CONFIG_PARAMETER"
             )
         return {"Parameter": {"Value": json.dumps(NETCONF_PARAMS)}}
 
@@ -150,14 +154,12 @@ class FakeSession:
     def __init__(
         self,
         lambda_client: FakeLambdaClient | None = None,
-        ssm_client: FakeSSMClient | None = None
+        ssm_client: FakeSSMClient | None = None,
     ):
         self.lambda_client = (
             FakeLambdaClient() if lambda_client is None else lambda_client
         )
-        self.ssm_client = (
-            FakeSSMClient() if ssm_client is None else ssm_client
-        )
+        self.ssm_client = FakeSSMClient() if ssm_client is None else ssm_client
         self.client_calls: list[SessionClientCall] = []
 
     def client(
@@ -274,7 +276,8 @@ class UploadClientRig:
 
     def transfer_log(self) -> list[dict[str, Any]]:
         return [
-            row for row in self.client.logger.rows
+            row
+            for row in self.client.logger.rows
             if row["category"] == "transfer"
         ]
 
@@ -361,7 +364,7 @@ def make_upload_client_rig(
 
 def assert_lambda_was_invoked_for_upload(fake_session: FakeSession) -> None:
     call = fake_session.lambda_client.last_call
-    assert call.function_name == NETCONF_PARAMS['INIT_LAMBDA_ARN']
+    assert call.function_name == NETCONF_PARAMS["INIT_LAMBDA_ARN"]
 
     payload = call.json_payload
     assert payload["dataset"] == DATASET
@@ -543,7 +546,9 @@ def test_upload_client_resumes_interrupted_upload(
 
         assert queued == ["beta.txt", "gamma.txt", "delta.txt"]
 
-        assert rig.transfer_bucket.read("alpha.txt") == "alpha-old-valid-object"
+        assert (
+            rig.transfer_bucket.read("alpha.txt") == "alpha-old-valid-object"
+        )
         assert rig.transfer_bucket.read("beta.txt") == "beta-new"
         assert rig.transfer_bucket.read("gamma.txt") == "gamma-new"
         assert rig.transfer_bucket.read("delta.txt") == "delta-new"

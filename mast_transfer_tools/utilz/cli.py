@@ -20,6 +20,7 @@ from tempfile import mkstemp
 from typing import Iterator, NoReturn, Any
 
 from botocore.exceptions import ClientError
+
 # click's colored output support does not respect TERM or NO_COLOR
 # so we're not gonna use it until they fix that
 from click import format_filename
@@ -28,7 +29,10 @@ from pandas import DataFrame
 from yaml import YAMLError, MarkedYAMLError
 
 import mast_transfer_tools.validation
-from mast_transfer_tools.labels import Label, STANDARDS_SUPPORTING_DATA_VALIDATION
+from mast_transfer_tools.labels import (
+    Label,
+    STANDARDS_SUPPORTING_DATA_VALIDATION,
+)
 
 from typing import Literal
 
@@ -38,7 +42,7 @@ def configure_logging(level: int) -> None:
     Configure the `logging` module appropriately for MTT CLI programs.
     """
     logging.basicConfig(
-        level = level,
+        level=level,
         # TODO message formatting etc
     )
     logging.captureWarnings(True)  # NOQA: FBT003
@@ -50,9 +54,7 @@ def require_directory(dir: Path) -> None:
     """
 
     if not dir.is_dir():
-        sys.stderr.write(
-            f"{format_filename(dir)}: error: Not a directory\n"
-        )
+        sys.stderr.write(f"{format_filename(dir)}: error: Not a directory\n")
         sys.exit(1)
 
 
@@ -76,7 +78,7 @@ def require_bucket(bucket: "Bucket") -> None:
 
 
 def parse_src_url_arg(
-    arg: Path | str
+    arg: Path | str,
 ) -> tuple[Literal[None], Path] | tuple["Bucket", str]:
     """If ARG is a path, or a string that looks like a local pathname,
     check that it's a directory that exists, then return `(None, Path(arg))`.
@@ -95,7 +97,8 @@ def parse_src_url_arg(
             schema = arg[:p].upper()
             if schema == "S3":
                 from hostess.aws.s3 import Bucket
-                bucket_name, _, prefix = arg[(p+3):].partition("/")
+
+                bucket_name, _, prefix = arg[(p + 3) :].partition("/")
                 bucket = Bucket(bucket_name)
                 require_bucket(bucket)
                 prefix = prefix.strip("/")
@@ -173,21 +176,18 @@ def fatal_yaml_error(e: YAMLError, yaml_file: Path) -> NoReturn:
     subject = format_filename(yaml_file)
     msglines = [f"YAML syntax error while reading {subject}:\n"]
     if isinstance(e, MarkedYAMLError):
-        if (
-            e.context_mark is not None
-            and e.context_mark.name in ("<unicode string>", "<byte string>")
+        if e.context_mark is not None and e.context_mark.name in (
+            "<unicode string>",
+            "<byte string>",
         ):
             e.context_mark.name = subject
-        if (
-            e.problem_mark is not None
-            and e.problem_mark.name in ("<unicode string>", "<byte string>")
+        if e.problem_mark is not None and e.problem_mark.name in (
+            "<unicode string>",
+            "<byte string>",
         ):
             e.problem_mark.name = subject
 
-    msglines.extend(
-        f"|  {line}\n"
-        for line in str(e).splitlines()
-    )
+    msglines.extend(f"|  {line}\n" for line in str(e).splitlines())
 
     sys.stderr.write("".join(msglines))
     sys.exit(1)
@@ -221,12 +221,10 @@ def atomic_update(path: str | Path) -> Iterator[BufferedRandom]:
         path = Path(path)
 
     (fd, tmppath) = mkstemp(
-        prefix=path.stem + ".",
-        suffix=".new",
-        dir=path.parent
+        prefix=path.stem + ".", suffix=".new", dir=path.parent
     )
     try:
-        fp = open(fd, "w+b", closefd=False) # noqa: SIM115
+        fp = open(fd, "w+b", closefd=False)  # noqa: SIM115
         yield fp
         fp.close()
         os.fsync(fd)
@@ -270,9 +268,7 @@ def _format_validation_failures(
         lines = []
         for key, value in failures.items():
             lines.append(f"{pad}{key}")
-            lines.extend(
-                _format_validation_failures(value, indent=indent + 2)
-            )
+            lines.extend(_format_validation_failures(value, indent=indent + 2))
         return lines
 
     if isinstance(failures, list):
@@ -289,7 +285,7 @@ def validate_chatty(
     parsed_label: Label,
     bucket_name: str | None = None,
     *,
-    object_check_hook: bool = True
+    object_check_hook: bool = True,
 ) -> tuple[str, bool]:
     filetypes = parsed_label.filetypes_for_filename(file)
 
@@ -332,10 +328,10 @@ def require_valid_targets(
     source: Path | Bucket, table: DataFrame
 ) -> list[Path | str]:
     if isinstance(source, Path):
-        targets = [source / f for f in table['path']]
+        targets = [source / f for f in table["path"]]
         missing = [t for t in targets if not t.exists()]
     else:
-        targets = [f for f in table['path']]
+        targets = [f for f in table["path"]]
         heads = source.head(targets)
         # NOTE: it's best to validate the caller's ability to access the
         #  bucket at all prior to calling this function, or the failure message
@@ -344,7 +340,7 @@ def require_valid_targets(
             t for t, h in zip(heads, targets) if isinstance(h, Exception)
         ]
     if len(missing) > 0:
-        sys.stderr.write("not found:\n" + '\n'.join(missing))
+        sys.stderr.write("not found:\n" + "\n".join(missing))
         sys.exit(1)
     return targets
 

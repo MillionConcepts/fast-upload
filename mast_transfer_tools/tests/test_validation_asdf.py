@@ -171,17 +171,15 @@ def test_asdf_structured_array_schema_validation_ok() -> None:
 
 
 def test_asdf_scalar_value_validation_ok() -> None:
-    afile = asdf.AsdfFile({
-        "meta": {
-            "instrument": "NIRCam"
-        }
-    })
+    afile = asdf.AsdfFile({"meta": {"instrument": "NIRCam"}})
 
-    ft = make_asdf_filetype(make_asdf_object(
-        name=["meta", "instrument"],
-        objtype="str",
-        value="NIRCam",
-    ))
+    ft = make_asdf_filetype(
+        make_asdf_object(
+            name=["meta", "instrument"],
+            objtype="str",
+            value="NIRCam",
+        )
+    )
 
     errors = asdf_validation.check_file(afile, ft)
     assert_no_errors(errors, "scalar ASDF value failed validation")

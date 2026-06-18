@@ -16,29 +16,31 @@ from mast_transfer_tools.io.asdf import asdfopen_generic
 def _asdf_with_missing_extension() -> BytesIO:
     buff = BytesIO()
 
-    afile = asdf.AsdfFile({
-        "history": {
-            "extensions": [
-                ExtensionMetadata(
-                    extension_class=(
-                        "mast_transfer_tools.tests."
-                        "DefinitelyNotInstalledExtension"
-                    ),
-                    extension_uri=(
-                        "asdf://mast-transfer-tools/tests/extensions/"
-                        "definitely-not-installed-1.0.0"
-                    ),
-                    software=Software(
-                        name="definitely-not-installed",
-                        version="1.0.0",
-                    ),
-                )
-            ]
-        },
-        "data": {
-            "some": "perfectly boring payload",
-        },
-    })
+    afile = asdf.AsdfFile(
+        {
+            "history": {
+                "extensions": [
+                    ExtensionMetadata(
+                        extension_class=(
+                            "mast_transfer_tools.tests."
+                            "DefinitelyNotInstalledExtension"
+                        ),
+                        extension_uri=(
+                            "asdf://mast-transfer-tools/tests/extensions/"
+                            "definitely-not-installed-1.0.0"
+                        ),
+                        software=Software(
+                            name="definitely-not-installed",
+                            version="1.0.0",
+                        ),
+                    )
+                ]
+            },
+            "data": {
+                "some": "perfectly boring payload",
+            },
+        }
+    )
 
     afile.write_to(buff)
     buff.seek(0)

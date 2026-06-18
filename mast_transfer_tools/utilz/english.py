@@ -11,6 +11,7 @@ from typing import (
     get_args as type_args,
 )
 
+
 def a_noun(noun: str) -> str:
     """
     Return 'noun' with the correct English indefinite article prepended
@@ -20,6 +21,7 @@ def a_noun(noun: str) -> str:
     (vocalic Y, "S" pronounced "ess", etc).
     """
     return ("an " if noun[0] in "aeiouAEIOU" else "a ") + noun
+
 
 def a_type(thing: Any) -> str:
     """
@@ -65,19 +67,21 @@ def a_type(thing: Any) -> str:
     else:
         name = type(thing).__name__
 
-    name = ({
-        "str":           "string",
-        "bool":          "boolean value",
-        "int":           "integer",
-        "float":         "real number",
-        "list":          "sequence",
-        "dict":          "mapping",
-        "NoneType":      "absent value",
-        "ExplicitNullT": "null value",
-        "ScalarNode":    "scalar",
-        "SequenceNode":  "sequence",
-        "MappingNode":   "mapping",
-    }).get(name, name)
+    name = (
+        {
+            "str": "string",
+            "bool": "boolean value",
+            "int": "integer",
+            "float": "real number",
+            "list": "sequence",
+            "dict": "mapping",
+            "NoneType": "absent value",
+            "ExplicitNullT": "null value",
+            "ScalarNode": "scalar",
+            "SequenceNode": "sequence",
+            "MappingNode": "mapping",
+        }
+    ).get(name, name)
 
     return a_noun(name)
 
@@ -125,19 +129,21 @@ def type_s(thing: Any) -> str:
     else:
         name = type(thing).__name__
 
-    pname = ({
-        "str":           "strings",
-        "bool":          "booleans",
-        "int":           "integers",
-        "float":         "real numbers",
-        "list":          "sequences",
-        "dict":          "mappings",
-        "NoneType":      "absent values",
-        "ExplicitNullT": "null values",
-        "ScalarNode":    "scalars",
-        "SequenceNode":  "sequences",
-        "MappingNode":   "mappings",
-    }).get(name)
+    pname = (
+        {
+            "str": "strings",
+            "bool": "booleans",
+            "int": "integers",
+            "float": "real numbers",
+            "list": "sequences",
+            "dict": "mappings",
+            "NoneType": "absent values",
+            "ExplicitNullT": "null values",
+            "ScalarNode": "scalars",
+            "SequenceNode": "sequences",
+            "MappingNode": "mappings",
+        }
+    ).get(name)
 
     if pname is None:
         pname = f"'{name}'s"
@@ -150,4 +156,4 @@ def repr_rx(rx: Pattern[Any]) -> str:
     Produce a human-readable, unambiguous serialization of regex RX,
     in the usual /pattern/ notation.
     """
-    return '/' + repr(rx.pattern)[1:-1].replace('/','\\/') + '/'
+    return "/" + repr(rx.pattern)[1:-1].replace("/", "\\/") + "/"

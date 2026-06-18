@@ -10,6 +10,7 @@ from mast_transfer_tools.types import TransferType, TransferEntity
 class BucketNamer(Protocol):
     def __call__(self, s: str, /, *args: Any, **kwargs: Any) -> str: ...
 
+
 def regularize_bucket_name(func: BucketNamer) -> BucketNamer:
 
     @wraps(func)
@@ -48,9 +49,7 @@ def index_key(
     return f"{dataset}-{delivery_id}-{transfer_type}-index.csv"
 
 
-def log_key(
-    transfer_type: TransferType, writer: TransferEntity
-) -> str:
+def log_key(transfer_type: TransferType, writer: TransferEntity) -> str:
     if writer == "lambda":
         return "log/lambda"
     elif writer in ("client", "validator"):

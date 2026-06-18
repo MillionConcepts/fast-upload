@@ -14,12 +14,16 @@ from mast_transfer_tools.tests.mock_buckets import MockBucket
 
 class MockAppendingBucket(MockBucket):
     """fake S3 bucket for testing S3TSVWriter's append-writes."""
+
     def __init__(self) -> None:
         self.objects = defaultdict(str)
         self.appends = []
 
     def append(
-        self, text: str, key: str, literal_str: Literal[True] = True  # noqa: FBT002
+        self,
+        text: str,
+        key: str,
+        literal_str: Literal[True] = True,  # noqa: FBT002
     ) -> None:
         assert literal_str is True
         self.appends.append((key, text))
@@ -171,6 +175,7 @@ def test_concurrent_writes_are_all_present_once() -> None:
     n = 100
 
     try:
+
         def submit(i: Any) -> None:
             w.write(time="t", event="hit", seq=str(i))
 
