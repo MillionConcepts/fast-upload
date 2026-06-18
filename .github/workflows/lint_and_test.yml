@@ -1,6 +1,25 @@
-name: Run unit tests
+name: Lint and test
 on: [ push ]
 jobs:
+    lint:
+        runs-on: ubuntu-latest
+        steps:
+            -   name: Check out code
+                uses: actions/checkout@v6
+
+            # This step should install the *oldest* version of Python
+            # supported by this package.
+            -   name: Set up Python 3.11
+                uses: actions/setup-python@v6
+                id: py
+                with:
+                    python-version: '3.11'
+                    cache: 'pip'
+
+            -   name: Ruff lints
+                uses: astral-sh/ruff-action@v4.0.0
+                with:
+                    version: "latest"
     unit-tests:
         runs-on: ubuntu-latest
         strategy:
@@ -12,7 +31,7 @@ jobs:
             - name: Check out code
               uses: actions/checkout@v6
 
-            - name: Set up Python 3.11
+            - name: Set up Python
               uses: actions/setup-python@v6
               id: py
               with:
