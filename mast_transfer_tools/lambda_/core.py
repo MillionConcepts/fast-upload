@@ -208,7 +208,7 @@ def lambda_cleanup(
                 event, netconf_params
             )
             tags_response = ssm.get_parameter(
-                Name="/mast-fast/resource-tags", WithDecryption=True
+                Name=conf.RESOURCE_TAG_PARAMETER, WithDecryption=True
             )
             tags = json.loads(tags_response["Parameter"]["Value"])
             cleanup_dict["bucket"] = Bucket(cbucket_name)

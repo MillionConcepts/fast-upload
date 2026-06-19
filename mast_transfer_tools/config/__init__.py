@@ -17,6 +17,8 @@ MAX_TRANSFER_FAILURES = 10
 
 NETWORK_CONFIG_PARAMETER = "/mast-fast/delivery"
 
+RESOURCE_TAG_PARAMETER = "/mast-fast/resource-tags"
+
 VAL_PIPE_SETTINGS = {
     "keepalive_threshold": 10,
     "n_val_threads": 3,
