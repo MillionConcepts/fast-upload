@@ -155,7 +155,7 @@ def _maybe_check_objs(
     except Exception as exc:
         # this case is an unhandled exception in the checker, not a
         # "validation failure"
-        return {}, _maybe_raise(exc, validation_error_msg, debug)
+        return {}, _maybe_raise(exc, validation_error_msg, do_raise=debug)
     return failures, None
 
 
