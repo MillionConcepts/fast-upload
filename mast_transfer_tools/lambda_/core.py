@@ -54,7 +54,7 @@ yload = partial(yaml.load, Loader=yaml.CLoader)
 # full TaskConfig _after_ merging the default task config and, if present, any
 # dataset-specific task config, but individual task configs can contain any
 # subset of those keys, which are interpreted as overrides.
-def _load_tconfig(cbucket: "Bucket", key: str) -> TaskConfig:
+def _load_tconfig(cbucket: Bucket, key: str) -> TaskConfig:
     return yload(cbucket.get(key).read().decode("utf-8"))
 
 
