@@ -196,7 +196,9 @@ def validate_file_content(
     return result, data
 
 
-OBJECT_LEVEL_VALIDATION_ATTRIBUTES = ("schema", "dtype", "metadata", "ndim")
+OBJECT_LEVEL_VALIDATION_ATTRIBUTES = (
+    "schema", "dtype", "objtype", "metadata", "ndim", "value", "name"
+)
 
 
 def _spec_has_data_validation(spec: Filetype | None) -> bool:
@@ -222,9 +224,9 @@ def _spec_has_data_validation(spec: Filetype | None) -> bool:
                 continue
             attr = getattr(obj, checkname)
             # DataObject.metadata and DataObject.schema always exist, but
-            # are empty when irrelevant. DataObject.ndim and DataObject.dtype
-            # don't exist when irrelevant. Note that a strict falsiness check
-            # isn't good here because ndim == 0 is semantically meaningful.
+            # are empty when irrelevant. Others don't exist when irrelevant.
+            # Note that a strict falsiness check isn't good here because 0,
+            # False, etc. can be semantically meaningful for some attributes.
             if attr is None:
                 continue
             if hasattr(attr, "__len__") and len(attr) == 0:

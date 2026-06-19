@@ -95,14 +95,14 @@ def check_hdu_array_props(
         #  to enforce label validation rules
         return []
     failures = []
-    if spec.dtype is not None:
+    if spec.dtype is not None and "dtype" not in valopts.skip:
         if hdu.data is None:
             failures.append(
                 f"invalid dtype: expected {spec.dtype}, got empty data section"
             )
         elif (dt := generic.normalize_dt_rep(hdu.data.dtype)) != spec.dtype:
             failures.append(f"invalid dtype: expected {spec.dtype}, got {dt}")
-    if spec.ndim is not None:
+    if spec.ndim is not None and "ndim" not in valopts.skip:
         if hdu.data is None and spec.ndim != 0:
             failures.append(
                 f"invalid dimensionality: expected {spec.ndim}, got data "

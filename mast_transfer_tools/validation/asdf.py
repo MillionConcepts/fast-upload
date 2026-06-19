@@ -117,9 +117,11 @@ def check_obj_schema(
 
 
 def check_obj_array_props(
-    obj: Any, spec: DataObject, _valopts: FiletypeValidationOptions
+    obj: Any, spec: DataObject, valopts: FiletypeValidationOptions
 ) -> list[str] | None:
     if spec.dtype is None and spec.ndim is None:
+        return None
+    if "dtype" in valopts.skip and "ndim" in valopts.skip:
         return None
     if not hasattr(obj, "dtype"):
         return [
@@ -139,14 +141,18 @@ def check_obj_array_props(
     # checking most attributes of an unloaded NDArrayTag causes array load.
     # 'ndim' is included. however,'shape' and 'dtype' are safe. don't change
     # 'len(obj.shape)' to 'ndim'.
-    if spec.ndim is not None:
+    if spec.ndim is not None and "ndim" not in valopts.skip:
         if len(obj.shape) != spec.ndim:
             failures.append(
                 f"Invalid dimensionality: expected {spec.ndim}, got "
                 f"{len(obj.shape)}"
             )
     dt = normalize_dt_rep(obj.dtype)
-    if spec.dtype is not None and dt != spec.dtype:
+    if (
+        spec.dtype is not None
+        and "dtype" not in valopts.skip
+        and dt != spec.dtype
+    ):
         failures.append(f"invalid dtype: expected {spec.dtype}, got {dt}")
     return failures if len(failures) > 0 else None
 
