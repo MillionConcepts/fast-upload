@@ -2,7 +2,7 @@
 Data types used throughout the mast-upload-tools which are not complicated
 enough to need their own file.
 """
-
+from dataclasses import dataclass
 from typing import Literal, TypedDict, NotRequired
 
 from pandas import DataFrame
@@ -44,7 +44,6 @@ class TaskConfig(TypedDict):
 class ValPipeSettings(TypedDict):
     transfer_timeout: float
     missing_timeout: float
-    log_poll_rate: float
     loop_rate: float
     n_val_threads: int
     keepalive_threshold: float
@@ -127,3 +126,13 @@ class LambdaEventParameters(TypedDict):
     delivery_id: str
     transfer_type: TransferType
     agent_id: str
+
+
+@dataclass
+class CognitoConfiguration:
+    domain: str
+    client_id: str
+    redirect_uri: str
+    region: str
+    user_pool_id: str
+    identity_pool_id: str

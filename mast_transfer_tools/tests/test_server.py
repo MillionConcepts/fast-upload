@@ -44,7 +44,6 @@ AGENT_ID = "validator-agent"
 DEFAULT_VAL_SETTINGS = {
     "transfer_timeout": 10_000,
     "missing_timeout": 10_000,
-    "log_poll_rate": 0,
     "loop_rate": 0,
     "n_val_threads": 1,
     "keepalive_threshold": 10_000,

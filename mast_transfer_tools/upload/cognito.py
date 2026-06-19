@@ -19,6 +19,8 @@ from botocore.credentials import RefreshableCredentials
 from botocore.exceptions import ClientError
 import requests
 
+from mast_transfer_tools.types import CognitoConfiguration
+
 
 class CognitoTokens(TypedDict):
     """
@@ -752,16 +754,6 @@ class CognitoCredentialsManager:
             aws_session_token=self.credentials["session_token"],
             region_name=self.region,
         )
-
-
-@dataclass
-class CognitoConfiguration:
-    domain: str
-    client_id: str
-    redirect_uri: str
-    region: str
-    user_pool_id: str
-    identity_pool_id: str
 
 
 def decode_jwt_payload(jwt_token: str) -> JwtPayload:

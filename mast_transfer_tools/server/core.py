@@ -992,14 +992,10 @@ class ValidationSession:
     how many seconds can elapse between messages from the client before we
     start getting suspicious?
     """
-    log_poll_rate: float
-    """
-    How many seconds should we wait between tail-reads of the client log?
-    """
     loop_rate: float
     """
     How many seconds should we wait between iterations of the main loop
-    (including polling validation threads?)
+    (including polling validation threads and the client log?)
     """
     n_val_threads: int
     """

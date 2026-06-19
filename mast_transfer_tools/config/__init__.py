@@ -9,7 +9,7 @@ a different way. Module currently contains values for the MAST dev deployment.
 
 import botocore.config
 
-from mast_transfer_tools.upload.cognito import CognitoConfiguration
+from mast_transfer_tools.types import CognitoConfiguration
 
 LABEL_PREFIX = "labels/accepted"
 
@@ -22,10 +22,9 @@ RESOURCE_TAG_PARAMETER = "/mast-fast/resource-tags"
 VAL_PIPE_SETTINGS = {
     "keepalive_threshold": 10,
     "n_val_threads": 3,
-    "log_poll_rate": 1,
     "transfer_timeout": 480,
     "missing_timeout": 240,
-    "loop_rate": 0.05,
+    "loop_rate": 0.25,
 }
 
 COGCONFIG = CognitoConfiguration(
