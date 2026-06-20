@@ -47,7 +47,10 @@ def describe_file(fn: str | Path, bucket: Bucket | None = None) -> list[dict]:
     Describe objects (always a single object) in an individual parquet file.
     """
     file = parquetopen_generic(fn, bucket=bucket)
-    row: pa.Table = file.read_row_group(0).take([0])
+    try:
+        row: pa.Table = file.read_row_group(0).take([0])
+    finally:
+        file.close()
     schema = []
     for i, field in enumerate(tuple(row.schema)):
         name, ftype = field.name, field.type

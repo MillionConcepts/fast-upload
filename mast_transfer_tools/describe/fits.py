@@ -129,6 +129,7 @@ def unify_descriptions(
 def describe_file(fn: str | Path, bucket: Bucket | None = None) -> list[dict]:
     """Describe the HDUs of an individual FITS file"""
     hdu_descriptions = []
-    for hdu in fitsopen_generic(fn, bucket):
-        hdu_descriptions.append(describe_hdu(hdu))
+    with fitsopen_generic(fn, bucket) as hdul:
+        for hdu in hdul:
+            hdu_descriptions.append(describe_hdu(hdu))
     return hdu_descriptions

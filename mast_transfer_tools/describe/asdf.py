@@ -203,6 +203,9 @@ def describe_file(fn: str | Path, bucket: Bucket | None = None) -> list[dict]:
     """Describe objects in an individual ASDF file."""
     obj_descriptions = []
     asdf_file = asdfopen_generic(fn, bucket)
-    for path, obj in extract_objects(asdf_file, autoload=True)[0].items():
-        obj_descriptions.append(describe_asdf_object(obj) | {"name": path})
+    try:
+        for path, obj in extract_objects(asdf_file, autoload=True)[0].items():
+            obj_descriptions.append(describe_asdf_object(obj) | {"name": path})
+    finally:
+        asdf_file.close()
     return obj_descriptions
