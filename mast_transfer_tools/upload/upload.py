@@ -20,6 +20,10 @@ def upload(
     file_index: pd.DataFrame,
     source: Path | Bucket,
 ) -> None:
+    """
+    Handler function for `UploadClient`, intended primarily to be invoked by
+    `mast-upload transfer`.
+    """
     import mast_transfer_tools.config as conf
 
     client = UploadClient(
