@@ -1,0 +1,140 @@
+# Label schema
+
+This document describes the label schema implemented in `mast_transfer_tools.labels` and supporting code.
+
+Mismatches between the implementation and this document should be considered a bug.
+
+| keyword | description | YAML type | required? |
+| :---- | :---- | :---- | :---- |
+| dataset | identifier for dataset | string | yes |
+| delivery\_id | identifier for delivery within dataset | string | integer | yes |
+| time | information on temporal boundaries of delivery | mapping | yes |
+| time/observation\_start\_date | start date of observations | date (normalized to YYYY-MM-DD for string comparison; time of day not allowed) | no |
+| time/observation\_end\_date | end date of observations | date (normalized to YYYY-MM-DD for string comparison; time of day not allowed) | no |
+| time/delivery\_start\_date | date on which overall delivery process was initiated (web form interaction, not file upload)  | date (normalized to YYYY-MM-DD for string comparison; time of day not allowed) | yes |
+| contacts | contact information for associated personnel | mapping | no (although it will make automated notifications more difficult) |
+| contacts/provider | email address for provider-side point-of-contact | sequence of strings (valid emails) | no |
+| contacts/archive | email address for archive-side point-of-contact | sequence of strings (valid emails) | no |
+| filetypes | structure for defining filetypes | mapping | no (although we’ll be doing very little validation if no filetypes are defined) |
+| filetypes/$NAME | individual filetype definition | mapping | at least one |
+| filetypes/$NAME/standard | File format. Data-level validation is currently only supported for ASDF, FITS, and Parquet files. This field is recommended for all files, however. For ASDF / FITS / Parquet files, this field should contain, respectively, “asdf”, “fits”, or “parquet”. For other file formats, this field may contain either a file extension; ordinary-language format name / description; or MIME type. Specificity is recommended (e.g., “pdf” clearly denotes a Adobe Acrobat file, but “dat” does not clearly denote any particular file format). This field is case-insensitive. Note: the validator will perform *no* data-level validation if this field is not defined. | string  | required when objects is defined; otherwise recommended. |
+| filetypes/$NAME/filename | Regex pattern(s) which indicate what files are covered by this filetype. Patterns are matched against pathnames relative to the top-level directory of the file set (normally this is the directory containing the label file) and must match the entire pathname.  Regex patterns that begin with `(?!)` (which normally would make the entire pattern never match) are interpreted as exclusions, e.g. `[‘.*\.fits’, ‘(?!).*/not-this-one\.fits’]` means this filetype covers all files whose name ends with `.fits` except for `not-this-one.fits`. | string (valid Python-style regex) or list of strings | yes |
+| filetypes/$NAME/ignore | If true, files matching the ‘filename’ pattern(s) are ignored; they are not processed for validation and they are not uploaded either.  When true, `standard`, `objects`, and `validation_options` should all be omitted. | boolean | no (default false) |
+| filetypes/$NAME/objects | data objects in file we would like to perform validation on, or at least know about.  | sequence of mappings as described below | no (but if you want to do anything but basic format validation, you need this) |
+| filetypes/$NAME/objects/$ELEMENT | structure giving information on an individual data object. For FITS files, this represents an HDU; for ASDF files, it represents a node; for Parquet files, it represents the (single) table. | mapping | For FITS, must contain definitions for all HDUs in physical order. For ASDF, may contain definitions for any non-empty subset of nodes. For Parquet, must contain exactly one object, representing the table as a whole.  |
+| filetypes/$NAME/objects/$ELEMENT/objtype | identifier for object type. In FITS files, this shall be “primary” for the primary HDU, and the XTENSION of most extension HDUs: “bintable” or “image”. Bintable extension HDUs containing tile-compressed images, however, shall be specified as “compimage”, as their logical representation differs substantially from a standard binary table. ASCII table extensions are not currently supported.   For ASDF, this value shall be the type name of the in-memory Python representation of the node. It may be either (1) a fully-qualified type name (e.g. `numpy.ndarray`) (2) the simple name of the type (e.g. `ndarray`), or (3) a recognized alias (e.g. “ndarray” for `asdf.tags.core.NDArrayType`).  Note that using the simple name of a type can result in ambiguity, notably between `pyarrow.lib.Table` and `astropy.table.table.Table.`  This field is case-insensitive. For Parquet, this field may only have the value “table” (but need not be defined). | string | yes, for FITS and ASDF; optional for Parquet |
+| filetypes/$NAME/objects/$ELEMENT/name | object name. For FITS HDUs, it *may* be defined as either the EXTNAME of the HDU (case-insensitive), or “primary” for the primary HDU. For non-primary HDUs with no EXTNAME, it *shall not* be defined. For ASDF nodes, it *shall* be defined either as (1) the node name or (2) the fully-qualified path to the node expressed as a sequence of strings, integers, or booleans. Unless ‘repeated’ is true, the node *must* either (1) be unique within the file or (2) be at the top level of the tree. Note that ASDF node paths may legally use boolean keys (true/false). These are permitted for fully-qualified paths. This field *may* be defined for objects in Parquet files but *shall* be ignored by validators. | string for FITS files; string | integer for ASDF files; or for fully-qualified ASDF paths, sequence of string | integer | boolean | yes, for ASDF only. Optional for other formats. |
+| filetypes/$NAME/objects/$ELEMENT/name\_regex | interpret ‘name’ field (or each element of ‘name’, for fully-qualified ASDF paths) as regex? Note: does not permit wildcard numerical indexing on nested lists of ASDF nodes.  | boolean | no (default false) |
+| filetypes/$NAME/objects/$ELEMENT/repeated | may an arbitrary number of similarly-formatted objects matching ‘name’ be present in the file? (must be contiguous, if FITS). Requires ‘name’ to be defined, and implies name\_regex \= true.  NOTE: ‘extra’ undefined objects are normally valid in ASDF files (to avoid the need to express the entire schema in the label). However, in order to avoid ambiguity, if an object *is* defined and its name specification might match multiple similar items in a valid example of this filetype, ‘repeated’ must be true. | boolean | no (default false) |
+| filetypes/$NAME/objects/$ELEMENT/optional | is it ok if this object isn’t present in a particular file? | boolean | no (default false) |
+| filetypes/$NAME/objects/$ELEMENT/dtype | scalar or array data type | string (enum of valid data type codes) | no (allowed only for scalars and arrays) |
+| filetypes/$NAME/objects/$ELEMENT/ndim | number of dimensions of array | integer  | no (allowed only for arrays) |
+| filetypes/$NAME/objects/$ELEMENT/value | If the ‘value\_regex’ field of this YAML mapping is absent or false, this gives the value of the in-memory Python object (under standard Python equality) after interpreting this field as a Python literal.  If the ‘value\_regex’ field of this YAML mapping is true, a regular expression to be matched against the string representation of the in-memory Python object.  Only valid for nodes of an ASDF tree that are of simple Python types, as implied by the valid YAML types of this field. | string | integer | float | boolean | (sequence of string | integer | boolean | float) | (mapping of string | integer | boolean | null to string | integer | float | boolean | null) if ‘value\_regex’ is false; string if ‘value\_regex’ is true | no (allowed only for ASDF) |
+| filetypes/$NAME/objects/$ELEMENT/value\_regex | Should ‘value’ as described above be interpreted as a regex to be matched against the string representation of this object? | boolean | no (default false) |
+| filetypes/$NAME/objects/$ELEMENT/metadata | Constraints on object metadata. For Parquet tables, elements of this mapping refer to user-defined key-value pairs in the file footer. For FITS HDUs, they refer to records in the HDU’s header (which must have unique keywords). This field is not supported for ASDF nodes (most ASDF metadata are distinct nodes, so should be defined as distinct data objects). | mapping whose keys are metadata keys/keywords and whose values are mappings as described below | no (and, if nonempty, allowed only for FITS and Parquet) |
+| filetypes/$NAME/objects/$ELEMENT/metadata/$KEY | mapping describing value associated with $KEY, as defined below | mapping | no |
+| filetypes/$NAME/objects/$ELEMENT/metadata/$KEY/value | Similar to filetypes/$NAME/objects/$ELEMENT/value, but supports a smaller set of types and refers to metadata fields rather than ASDF nodes. Notes: 1\. Unlike FITS header values, Parquet user-defined metadata values have no type system. As such, if value\_regex is False, validators shall attempt to coerce them to the Python type corresponding to the YAML type of this field (with special coercion rules for `boolean/bool` and complex types as described below). If coercion fails, the comparison will also fail. 2\. If value\_regex \= false, validators shall interpret the FITS integer, complex integer, complex floating-point, floating-point, logical, and character string types as corresponding Python types (respectively: `int, complex, complex, float, bool, str`). Validators shall treat equality comparison as invalid if the value of this field does not have the corresponding YAML type (see below for special rules for `complex`). 3\. Validators shall coerce YAML `datetimes` to `strs` containing their full ISO-8601 representation. Label writers may prevent this by strictly specifying values as YAML `strings` (wrapping them in single or double quotes). Validators shall not provide special coercion/reformatting for the FITS datetime pseudo-type.  4\. YAML has no complex number type. When validating FITS files, validators shall coerce YAML strings of the format *(n+mj)* or *(n-mj)*, e.g. “(1+2j)” to `complex`. Validators shall not coerce Parquet metadata values to `complex`. Label writers who wish to perform direct equality comparison to Parquet “complex” metadata values should use string comparison to whatever format is used in the file type.  5\. If this field is `boolean`, validators shall interpret the following (case-insensitive) Parquet metadata values as `True/False`: ‘true’, ‘t’, ‘1’, ‘yes’, ‘on’ / ‘false’, ‘f’, ‘0’, ‘no’, ‘off’. | string | integer | float | boolean; or, if value\_regex is true, string | no (but if not defined, just checks for presence of the metadata key) |
+| filetypes/$NAME/objects/$ELEMENT/metadata/$KEY/value\_regex | Same as filetypes/$NAME/objects/$ELEMENT/value\_regex, but for metadata fields rather than ASDF nodes | boolean | no (default false) |
+| filetypes/$NAME/objects/$ELEMENT/metadata/$KEY/index | For keywords that appear multiple times in a FITS header, specifies which of these (0-indexed) to check. Validation will fail if a keyword is present multiple times and this value is not defined. Not permitted for Parquet (per Parquet standard, user-defined metadata keys must be unique). | integer | no (and permitted only for FITS) |
+| filetypes/$NAME/objects/$ELEMENT/schema | Schema definition – data types and field / column names – for table or struct-like objects. If this field is defined, all fields / columns of the object must be described. Note that this should *not* be used for FITS BINTABLE extensions containing compressed images. Use object-level “ndim” and “dtype” values corresponding to their decompressed representation instead. | sequence of mappings | no (if nonempty, allowed only for tables or struct-like objects) |
+| filetypes/$NAME/objects/$ELEMENT/schema/$ELEMENT | extended column description | mapping | no |
+| filetypes/$NAME/objects/$ELEMENT/schema/$ELEMENT/name | name of column (optionally as regex) | string | yes |
+| filetypes/$NAME/objects/$ELEMENT/schema/$ELEMENT/dtype | data type of column | string (enum of valid data type codes) | yes |
+| filetypes/$NAME/objects/$ELEMENT/schema/$ELEMENT/name\_regex | treat this column’s name field as regex? | boolean | no (default false) |
+| filetypes/$NAME/objects/$ELEMENT/schema/$ELEMENT/repeated | may an arbitrary number of columns matching this specification be present in the schema? (must be contiguous). implies name\_regex \= true | boolean | no (default false) |
+| filetypes/$NAME/objects/$ELEMENT/schema/$ELEMENT/ndim | dimensionality of column (for things like embedded arrays in FITS binary table HDUs). 0 means each row contains a scalar, 1 means each row contains a 1D array, etc. Note: ndim \> 0 is not supported for list types in Parquet files. use dtype ‘O’ and ndim  0\.  | integer | no (default 0\) |
+| filetypes/$NAME/validation\_options | structure giving filetype-specific validation instructions | mapping | no |
+| filetypes/$NAME/validation\_options/skip | specific validation steps to skip  | sequence of strings; elements must be names of validation steps known to the pipeline. \[‘all’\] will skip all (meta)data-level validation for this filetype. | no (default empty sequence, i.e. do everything we can do with the information we have) |
+| filetypes/$NAME/validation\_options/object\_check\_hook | Name of module containing a custom `check_file()` function for additional file validation. | string | no |
+| delivery\_meta | structure giving metadata about the validator and the label itself, including global processing directives  | mapping | yes |
+| delivery\_meta/schema\_version | version of schema under which this label was created  | string (semver) | yes |
+| delivery\_meta/global\_validation\_options | processing directives applicable to all filetypes | mapping | no |
+| delivery\_meta/global\_validation\_options/skip | like filetypes/$NAME/validation\_options/skip, but for all filetypes | sequence of strings (if it contains ‘all’, skips all (meta)data-level validation) | no (default empty list, i.e. do everything we can do with the information we have) |
+| delivery\_meta/global\_validation\_options/missing\_filetypes\_ok | If false (default), a validator shall halt and report an error condition if the provider-uploaded index does not contain at least one example of each filetype defined in the label.   | boolean | no (default false) |
+| delivery\_meta/global\_validation\_options/no\_assigned\_filetype\_ok | If false (default), a validator shall halt and report an error condition if a provider-uploaded index contains one or more files that do not match any filetype defined in the label. | boolean | no (default false) |
+| custom\_metadata | This is a special area for user-defined metadata. All entries in this mapping are legal as long as they are valid YAML. | mapping | no |
+
+## Additional notes
+
+### Python Types
+
+Unless otherwise specified in a particular context, validators shall interpret YAML types as the following Python types:
+
+* `date: datetime.date`  
+  * when compared to `str`, convert the date to YYYY-MM-DD form (ISO 8601 “extended” date representation) first  
+* `integer: int`  
+* `float: float`  
+* `string: str`  
+  * except: if compared to `complex` and in the format (n+mj) or (n-mj) (e.g. (1+2j)), shall be cast to `complex`  
+* `null: NoneType` (i.e., the singleton `None`)  
+* `boolean: bool`  
+* `sequence: list`  
+* `mapping: dict`
+
+### Unsupported Features
+
+* nonstandard types  
+* unordered sets  
+* complex mappings
+
+## Data Type Codes for Arraylike and Tablelike Objects
+
+**Note:** not all codes permissible according to this label schema are valid according to all supported externally-defined standards. It is recommended but not required that label validators attempt to identify standards-invalid data types and treat labels that specify them as invalid. This is because labels containing such codes describe files that cannot legally exist, so data-level validation against such labels will always fail. Some (non-exhaustive) examples are given below.
+
+* **f8:** 8-byte floating-point / “double-precision”  
+* **f4:** 4-byte floating-point / “single-precision”  
+* **f2:** 2-byte floating-point / “half-float”  
+  * not supported by the FITS standard  
+* **i8:** 8-byte signed integer  
+* **i4**: 4-byte signed integer  
+* **i2:** 2-byte signed integer  
+* **i1:** 1-byte signed integer / “signed byte”  
+  * not supported by the FITS standard  
+* **u8:** 8-byte unsigned integer  
+* **u4:** 4-byte unsigned integer  
+* **u2:** 2-byte unsigned integer  
+* **u1:** 1-byte unsigned integer / “unsigned byte”  
+* **c16:** 16-byte complex  
+* **c8:** 8-byte complex  
+* **Vn:** catchall for n-byte fixed-width binary data. Must specify ‘n’, e.g. ‘V5’ for a 5-byte field. Includes all fixed-width types not interpretable as another specified type, and, specifically:  
+  * FITS table character array fields (‘A’ TFORM)  
+  * Parquet FIXED\_LEN\_BYTE\_ARRAY  
+  * numpy fixed-width string and (scalar) void types  
+* **b:** boolean / logical  
+  * supported by the FITS standard only in tables  
+* **O:** catchall for variable-length data or pointer to variable-length data, including:  
+  * serialized or autogenerated Python objects of non-fixed-width types  
+  * Parquet BYTE\_ARRAY  
+  * variable-length array descriptors in FITS binary tables (‘P’ and ‘Q’ TFORMs)  
+* **M:** datetime  
+  * includes all Parquet datetime logical types regardless of precision, including those based on the deprecated INT96 primitive type  
+  * includes all serialized numpy / pandas datetime types  
+  * **does not** include FITS character arrays representing times (use Vn)
+
+## Unsupported Type Descriptions
+
+The schema permits the following data types, but does not support *specific* description of them:
+
+* Parquet logical types other than those mentioned above. These include lists, dictionaries, structs, durations, variable-length strings, embedded JSON documents, geography, decimals, UUIDs, maps, and many more. Fields containing such logical types shall use the code corresponding to the logical type’s physical type:  
+  * BYTE\_ARRAY: O  
+  * FIXED\_LEN\_BYTE\_ARRAY: Vn (where n is the fixed length)  
+  * FLOAT: f4  
+  * DOUBLE: f8  
+  * INT32: i4  
+  * INT64: i8  
+  * BOOLEAN: b  
+* Python types without fixed byte widths, including `int, float, list, str`, `datetime.datetime`, pandas `Categorical` and nillable integers, etc. Fields of such types shall be described as ‘O’.  
+* Bit fields in FITS binary tables (TFORM ‘X’). Fields of such types shall be described as ‘Vn’, where n is the total number of bytes in the bit field (which must be an integer per FITS standard). 
+
+The schema also does not support explicit per-column description of the following type-adjacent features (although label-writers may, when they appear in supported metadata, specify them as metadata values if desired):
+
+* physical units (e.g. as properties of `Columns` of Astropy `Tables`)  
+* byte order. LSB and MSB realizations of data types shall be treated as identical by validators, and assumed to follow the byte order required by the externally-defined standard where relevant (e.g. MSB for FITS).    
+* display format (e.g. C format specifiers embedded in metadata or the FITS TDISPn keyword).
+
+## Unsupported Data Formats
+
+* All floating-point data types must be compliant with IEEE 754\. Legacy floating-point formats (e.g. VAX, IBM) are not supported.  
+* All signed integer data types must be implemented in standard two’s-complement fashion. Other styles of signed integer are not supported.  
+* Parquet table columns of the deprecated INT96 physical type are supported only when assigned a datetime logical type.
+
