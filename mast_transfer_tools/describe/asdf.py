@@ -7,7 +7,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pyarrow as pa
-import re
 import astropy.table
 from typing import Literal, Any, Collection
 

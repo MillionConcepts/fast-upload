@@ -9,15 +9,10 @@ Functions in this file named 'fatal_<thing>' report various kinds
 of fatal errors.  They always exit the program.
 """
 
-import logging
-import os
 import sys
 
-from contextlib import contextmanager
 from pathlib import Path
-from io import BufferedRandom
-from tempfile import mkstemp
-from typing import Iterator, NoReturn, Any
+from typing import NoReturn, Any
 
 from botocore.exceptions import ClientError
 

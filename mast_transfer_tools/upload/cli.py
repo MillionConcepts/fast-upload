@@ -6,7 +6,6 @@ The other modules in this subpackage define a Pythonic interface that _can_
 be used by other programs.
 """
 
-import logging
 import sys
 import warnings
 from collections import defaultdict

@@ -99,7 +99,7 @@ def log_key(transfer_type: TransferType, writer: TransferEntity) -> str:
     """
     if writer == "lambda":
         raise ValueError("The upload init lambda does not write a log object")
-    elif writer in ("client", "validator"):
+    if writer in ("client", "validator"):
         return f"log/{writer}_{transfer_type}"
     raise ValueError(f"Unknown entity {writer}")
 
