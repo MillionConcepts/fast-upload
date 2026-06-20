@@ -46,6 +46,7 @@ These values are defined in `mast_transfer_tools.config`.
 * `COGCONFIG`: a `mast_transfer_tools.types.CognitoConfiguration` object giving domain, client_id, redirect_uri, region, user_pool_id, and identity_pool_id for upload client Cognito transactions.
 * `LAMBDA_CLIENT_CONFIG`: a `botocore.config.Config` object used for upload client Lambda calls. Legal values are any 
    legal values for `Config`, but high read timeout (for awaiting pipeline launch) and restricting max attempts to 1 (to prevent spurious multiple invocations) are strongly recommended.
+* `VAL_PIPE_SQS_QUEUE_URL`: URL for SQS queue used by the validation pipeline to send reports.
 
 ## Validation pipeline configuration
 
