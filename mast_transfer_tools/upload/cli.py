@@ -21,7 +21,7 @@ from rich import print as rprint
 from yaml import YAMLError
 
 from hostess.aws.s3 import Bucket
-from mast_transfer_tools.describe import SUPPORTED_STANDARDS, FileDescription
+from mast_transfer_tools.describe import SUPPORTED_STANDARDS, FileDescription, describe_file
 from mast_transfer_tools.utilz.shims import path_walk
 from mast_transfer_tools.utilz.cli import (
     configure_logging,
@@ -277,8 +277,6 @@ def populate_label(
                 f"validation, not populating {ft_name}"
             )
             continue
-        # TODO: clarify generic interface
-        description_module = SUPPORTED_STANDARDS[ft.standard]
         from rich.progress import Progress
 
         descriptions = []
@@ -287,12 +285,11 @@ def populate_label(
                 f"examining {ft_name} files....", total=len(matching_files)
             )
             for f in matching_files:
-                desc = FileDescription(fn=f, standard=ft.standard)
+
                 with warnings.catch_warnings(record=True) as warning_trap:
+                    desc = FileDescription(fn=f)
                     try:
-                        desc.objects = description_module.describe_file(
-                            f, bucket
-                        )
+                        desc = describe_file(f)
                     except Exception as ex:
                         # for the exceptions that wind up here, the exception
                         # type doesn't add to the error message
@@ -330,7 +327,7 @@ def populate_label(
                     "Warnings above may explain the problem in more detail."
                 )
             continue
-
+        description_module = SUPPORTED_STANDARDS[ft.standard]
         objs, unification_failure = description_module.unify_descriptions(
             descriptions
         )

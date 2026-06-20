@@ -21,56 +21,11 @@ from mast_transfer_tools.labels import Filetype, FilePattern
 
 @dataclasses.dataclass
 class FileDescription:
-    #: Pathnames of files described by this group.
-    fn: list[Path] = dataclasses.field(default_factory=list)
-
-    #: An identifier for the format of the file group's contents
-    #: (after uncompressing it if necessary).  Usually corresponds
-    #: to the files' canonical extension after removing compression
-    #: suffixes.  Always all lowercase ASCII.  None if the format
-    #: couldn't be identified for some reason.
+    fn: Path
     standard: str | None = None
-
-    #: For files where we understand the contents, a list of
-    #: descriptions for the objects within files in this group.
-    #: The structure of these objects depends on what standard
-    #: describes the file as a whole.
-    #:
-    #: None in this field means we don't understand the contents of
-    #: this group of files.  This is different from an empty list,
-    #: which means files in this group are expected to have zero
-    #: objects in them, whatever that implies for this type of file.
     objects: list[dict[str, Any]] | None = None
-
-    #: Errors encountered while trying to analyze files in this group.
-    #: If there were no errors, the list will be empty.
     errors: list[str] = dataclasses.field(default_factory=list)
-
-    #: Warnings encountered while trying to analyze files in this group.
-    #: If there were no warnings, the list will be empty.
     warnings: list[Warning] = dataclasses.field(default_factory=list)
-
-    def to_filetype(self, tag: str, top: Path) -> Filetype:
-        lpath = f"/filetypes/{tag}"
-
-        if self.objects is not None:
-            raise NotImplementedError("filetype with objects")
-
-        # TODO: merge regexes
-        filename = [
-            FilePattern(
-                lpath = f"{lpath}/filenames/{i}",
-                pattern = re.compile(re.escape(str(fn.relative_to(top)))),
-                include = True
-            )
-            for i, fn in enumerate(self.fn)
-        ]
-
-        return Filetype(
-            lpath = lpath,
-            filename = filename,
-            standard = self.standard,
-        )
 
 
 def sanitize_object_description(obj: dict) -> dict:

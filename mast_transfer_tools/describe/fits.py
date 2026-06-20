@@ -99,6 +99,21 @@ def unify_hdu_descriptions(
 def unify_descriptions(
     descriptions: Collection[FileDescription]
 ) -> tuple[list[dict] | None, str | None]:
+    """
+    Attempt to unify a collection of FITS file descriptions into a list of
+    dicts suitable for use as the DataObjects of a Filetype.
+
+    Args:
+        descriptions: collection of FileDescriptions populated with
+            describe_file()
+
+    Returns:
+        objects: if unification succeeded, a list of dicts that can be used
+            to initialize DataObjects; if it didn't, None
+        failure: if unification failed, a string describing the failure;
+            if it succeeded, None
+    """
+
     if not all(d.standard == "fits" for d in descriptions):
         return None, "Not all files are FITS"
     hdus, failure = unify_hdu_descriptions(descriptions)
@@ -108,6 +123,7 @@ def unify_descriptions(
 
 
 def describe_file(fn: str | Path, bucket: Bucket | None = None) -> list[dict]:
+    """Describe the HDUs of an individual FITS file"""
     hdu_descriptions = []
     for hdu in fitsopen_generic(fn, bucket):
         hdu_descriptions.append(describe_hdu(hdu))
@@ -115,6 +131,7 @@ def describe_file(fn: str | Path, bucket: Bucket | None = None) -> list[dict]:
 
 
 def describe_objects(desc: FileDescription, fp: MCFile) -> None:
+
     assert desc.objects is None
     desc.objects = []
     for hdu in fits.open(fp):

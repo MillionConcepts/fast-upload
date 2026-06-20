@@ -25,6 +25,7 @@ from mast_transfer_tools.validation.generic import normalize_dt_rep
 def describe_asdf_table(
     table: np.ndarray | astropy.table.Table | pa.Table | pd.DataFrame,
 ) -> dict[Literal["schema"], list[dict]]:
+    """Generate description of an ASDF table-like object."""
     # NOTE: this is similar to Parquet file schema description, but notably
     # omits fallback to Parquet physical type. This is simply because
     # Arrow tables not stored in Parquet format _have_ no Parquet physical
@@ -65,10 +66,12 @@ def describe_asdf_table(
 def describe_ndarray(
     arr: np.ndarray,
 ) -> dict[Literal["ndim", "dtype"], int | str]:
+    """Generate a description of an ndarray."""
     return {"ndim": arr.ndim, "dtype": normalize_dt_rep(arr.dtype)}
 
 
 def describe_asdf_object(obj: Any) -> dict[str, str | list[dict] | int]:
+    """Generate a description of an ndarray or table-like object."""
     ot = type(obj)
     objtype = f"{ot.__module__}.{ot.__name__}".lower()
     if objtype == "numpy.ndarray" and len(obj.dtype) == 0:
@@ -83,15 +86,21 @@ def describe_asdf_object(obj: Any) -> dict[str, str | list[dict] | int]:
 
 
 def _n_unique_object_sets(trees: list[list[dict]]) -> int:
+    """How many unique sets of objects exist among these trees?"""
     return len(set(frozenset([o["group_id"] for o in t]) for t in trees))
 
 
 GROUPPAT = re.compile(r"(.*?)((?:_|\d)*\d+)$")
+"""Suffix patterns we auto-recognize for repeated objects."""
 
 
 def assign_unordered_stemgroups(
     tree: list[dict], stems: list[str]
 ) -> str | None:
+    """
+    Heuristically group object names by stemming likely 'repeated' object
+    names (suffixed with numbers).
+    """
     for obj in tree:
         if m := GROUPPAT.match(obj["name"][-1]):
             matches = [
@@ -166,6 +175,20 @@ def unify_tree_descriptions(
 def unify_descriptions(
     descriptions: Collection[FileDescription],
 ) -> tuple[list[dict] | None, str | None]:
+    """
+    Attempt to unify a collection of ASDF file descriptions into a list of
+    dicts suitable for use as the DataObjects of a Filetype.
+
+    Args:
+        descriptions: collection of FileDescriptions populated with
+            describe_file()
+
+    Returns:
+        objects: if unification succeeded, a list of dicts that can be used
+            to initialize DataObjects; if it didn't, None
+        failure: if unification failed, a string describing the failure;
+            if it succeeded, None
+    """
     if not all(d.standard == "asdf" for d in descriptions):
         return None, "Not all files are ASDF"
     if max(len(d.objects) for d in descriptions) == 0:
@@ -182,6 +205,7 @@ def unify_descriptions(
 
 
 def describe_file(fn: str | Path, bucket: Bucket | None = None) -> list[dict]:
+    """Describe objects in an individual ASDF file."""
     obj_descriptions = []
     asdf_file = asdfopen_generic(fn, bucket)
     for path, obj in extract_objects(asdf_file, autoload=True)[0].items():

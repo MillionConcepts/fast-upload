@@ -13,6 +13,7 @@ import logging
 from collections import defaultdict
 from pathlib import Path
 
+from hostess.aws.s3 import Bucket
 from mast_transfer_tools.describe import (
     generic as describe_generic,
     asdf as describe_asdf,
@@ -20,7 +21,6 @@ from mast_transfer_tools.describe import (
     parquet as describe_parquet
 )
 from mast_transfer_tools.describe.generic import FileDescription
-from mast_transfer_tools.utilz.compression import open as mc_open
 
 
 LOG = logging.getLogger(__name__)
@@ -42,47 +42,32 @@ PROBABLE_DOC_SUFFIXES = {
 }
 
 
-def describe_file(fn: Path) -> FileDescription:
+def describe_file(fn: str | Path, bucket: Bucket | None = None) -> FileDescription:
     """
     Examine the file `fn`, transparently decompressing it if necessary,
     and produce a description of that file suitable for a MAST label.
     """
-    desc = FileDescription()
-    desc.fn.append(fn)
-
-    fp, cext = mc_open(fn, "rb")
-    with fp:
-        suffixes = fn.suffixes
-        s = 1 if cext is None else 2
-        std = suffixes[-s][1:].lower() if len(suffixes) >= s else "unknown"
-
-        # alternative suffixes for a couple of formats we understand
-        if std == "fit":
-            std = "fits"
-        elif std == "pqt":
-            std = "parquet"
-
-        desc.standard = std
-        stdmod = SUPPORTED_STANDARDS.get(std)
-        if stdmod is None:
-            if std in PROBABLE_DOC_SUFFIXES:
-                LOG.debug(
-                    "%s: assuming a '%s' file is documentation",
-                    fn, std
-                )
-                desc.standard = "documentation"
-            else:
-                LOG.debug(
-                    "%s: structural analysis of '%s' files not yet supported",
-                    fn, std
-                )
-        else:
-            LOG.debug(
-                "%s: analyzing as a '%s' file",
-                fn, std
-            )
-            stdmod.describe_objects(desc, fp)
-        return desc
+    desc = FileDescription(fn=fn)
+    suffixes = tuple(map(lambda suf: suf.lower(), Path(fn).suffixes))
+    if "fit" in suffixes or "fits" in suffixes:
+        std = "fits"
+    elif "pqt" in suffixes or "parquet" in suffixes:
+        std = "parquet"
+    elif "asdf" in suffixes:
+        std = "asdf"
+    elif len(suffixes) == 0:
+        std = "unknown"
+    else:
+        std = suffixes[-1]
+    std = std.strip(".")
+    desc.standard = std
+    stdmod = SUPPORTED_STANDARDS.get(std)
+    if stdmod is None:
+        raise ValueError(
+            f"Object-level description of {std} files is not supported."
+        )
+    desc.objects = stdmod.describe_file(desc.fn, bucket)
+    return desc
 
 
 def unify_descriptions(descs: list[FileDescription]) -> list[FileDescription]:
