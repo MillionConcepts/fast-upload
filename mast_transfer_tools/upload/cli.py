@@ -24,7 +24,6 @@ from hostess.aws.s3 import Bucket
 from mast_transfer_tools.describe import SUPPORTED_STANDARDS, FileDescription, describe_file
 from mast_transfer_tools.utilz.shims import path_walk
 from mast_transfer_tools.utilz.cli import (
-    configure_logging,
     fatal_oserror,
     fatal_yaml_error,
     parse_src_url_arg,
@@ -78,41 +77,6 @@ directory_or_label_argument = click.argument(
     metavar="<directory | label.yml>",
     type=Path,
 )
-
-
-def verb_level_options(fn: Callable[..., None]) -> Callable[..., None]:
-    quiet = click.option(
-        "-q",
-        "--quiet",
-        "verb_level",
-        flag_value=logging.ERROR,
-        help="Only report errors.",
-    )
-    warn = click.option(
-        "-W",
-        "--warn",
-        "verb_level",
-        flag_value=logging.WARNING,
-        default=True,
-        help="Report errors and warnings (this is the default).",
-    )
-    verbose = click.option(
-        "-v",
-        "--verbose",
-        "verb_level",
-        flag_value=logging.INFO,
-        default=True,
-        help="Log all operations with a moderate level of detail.",
-    )
-    debug = click.option(
-        "--debug",
-        "verb_level",
-        flag_value=logging.DEBUG,
-        default=True,
-        help="Log all operations in great detail."
-        " Only useful when debugging mast-upload itself.",
-    )
-    return quiet(warn(verbose(debug(fn))))
 
 
 def object_check_hook_option(fn: Callable[..., None]) -> Callable[..., None]:
@@ -451,14 +415,12 @@ def report_filetypes(
     help="Is this a sample rather than a staging transfer?",
     type=bool,
 )
-@verb_level_options
 def transfer(
     *,
     source: str,
     label: Path,
     index_file: Path,
     sample: bool,
-    verb_level: int = logging.WARNING,
 ) -> None:
     """
     Upload a data set to MAST.
@@ -485,8 +447,6 @@ def transfer(
     else:
         source = Path(source)
         require_directory(source)
-
-    configure_logging(verb_level)
 
     try:
         parsed_label = Label.from_file(label)

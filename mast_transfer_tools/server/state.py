@@ -103,6 +103,10 @@ class ValidationState:
 
     @property
     def done(self) -> bool:
+        """
+        Do we appear to have finished the transfer and validation process,
+        successfully or otherwise?
+        """
         return self.n_expected_files == self.n_completed
 
     def _check_timeout(self) -> bool:
@@ -125,6 +129,13 @@ class ValidationState:
         return self.client_status == "missing"
 
     def check_timeout(self) -> bool:
+        """
+        Update our knowledge of the client's missing/absent status and its
+        last message time.
+
+        Returns:
+             True if the client is absent, False if not.
+        """
         if len(self.last_log) > 0:
             self.last_time = dtp.parse(
                 self.last_log["time"].iloc[-1]
@@ -138,8 +149,8 @@ class ValidationState:
                 quit / shut down / crashed?
             did_crash: does it indicate that it crashed?
 
-            Note that these are also recorded in instance attributes, but
-            it it is important to know _right when this has changed_.
+        Note that these are also recorded in instance attributes, but
+        it it is important to know _right when this has changed_.
         """
         shutrows = self.last_log.loc[self.last_log["category"] == "shutdown"]
         stoprows = self.last_log.loc[self.last_log["category"] == "stop"]
@@ -261,6 +272,7 @@ class ValidationState:
 
     @property
     def should_continue(self) -> bool:
+        """Does it look like we should keep working or not?"""
         return not (
             self.client_status in TERMINAL_CLIENT_STATES
             or self.n_failures > self.max_failures
@@ -279,6 +291,7 @@ class ValidationState:
         raise AttributeError(f"ValidationState has no attribute '{attr}'")
 
     def stop(self) -> None:
+        """Stop the object, which is to say: stop its reader."""
         self.reader.stop()
 
     client_status: ClientStatus = "unchecked"
@@ -331,7 +344,6 @@ class ValidationState:
     log_tail: list[str]
     """Container for streaming chunks from the client log."""
     log: pd.DataFrame = None
-    # TODO: we'll probably chunk this per-session
     """parsed log read so far, or empty dataframe if none yet read"""
     last_log: pd.DataFrame
     """last parsed log chunk, or empty dataframe if none yet read"""

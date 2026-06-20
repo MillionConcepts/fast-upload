@@ -23,7 +23,7 @@ import yaml
 
 import mast_transfer_tools.config as conf
 from mast_transfer_tools.utilz.locks import check_lock, LockStatus
-from mast_transfer_tools.errors import LockExistsError, InvalidLockError
+from mast_transfer_tools.errors import BucketLockedError, InvalidLockError
 from mast_transfer_tools.lambda_._client_responses import (
     cbucket_err_response,
     conf_bucket_err_response,
@@ -254,6 +254,7 @@ def main(
     tags: dict[str, str],
     cleanup_dict: _CleanupDict,
 ) -> YAMLString:
+    """Entrypoint for upload init lambda."""
     dataset, delivery_id, tbucket_name, cbucket_name = unpack_locations(
         event, netconf
     )
@@ -276,7 +277,7 @@ def main(
     )
     if llock_status == LockStatus.LOCKED:
         print(f"failed to acquire lock (status {llock_status}, bailing out\n")
-        return llock_err_response(LockExistsError())
+        return llock_err_response(BucketLockedError())
     try:
         cbucket.put(str(exid), names.lock_key("lambda"), literal_str=True)
     except ClientError as ce:

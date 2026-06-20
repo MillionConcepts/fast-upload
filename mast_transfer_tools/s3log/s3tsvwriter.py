@@ -84,6 +84,7 @@ class S3TSVWriter:
 
     @property
     def stopped(self) -> bool:
+        """Does this object appear to be stopped?"""
         return self.write_future.done()
 
     def _bufwait(self, _sigdict: dict) -> bool:

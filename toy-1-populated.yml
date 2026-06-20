@@ -1,0 +1,110 @@
+dataset: toy
+delivery_id: '1'
+time:
+  delivery_start_date: '2026-11-14'
+contacts:
+  provider: []
+  archive: []
+shared_name_patterns: {}
+filetypes:
+  data_fits:
+    filename:
+    - pattern: .*\.fits
+      include: 'true'
+    ignore: 'false'
+    standard: fits
+    objects:
+    - objtype: primary
+      name: PRIMARY
+      schema: []
+      name_regex: 'false'
+      dtype: f8
+      ndim: '2'
+      repeated: 'false'
+      optional: 'false'
+      value_regex: 'false'
+      metadata: {}
+    - objtype: bintable
+      name: TABLE
+      schema:
+      - dtype: i4
+        ndim: '0'
+        name: a
+      - dtype: f8
+        ndim: '0'
+        name: b((?:_|\d)*\d+)
+        repeated: 'true'
+      name_regex: 'false'
+      repeated: 'false'
+      optional: 'false'
+      value_regex: 'false'
+      metadata: {}
+    validation_options:
+      skip: []
+  data_asdf:
+    filename:
+    - pattern: .*\.asdf
+      include: 'true'
+    ignore: 'false'
+    standard: asdf
+    objects:
+    - objtype: numpy.ndarray
+      name:
+      - data
+      - array
+      schema: []
+      name_regex: 'false'
+      dtype: f8
+      ndim: '2'
+      repeated: 'false'
+      optional: 'false'
+      value_regex: 'false'
+      metadata: {}
+    - objtype: astropy.table.table.table
+      name:
+      - data
+      - table
+      schema:
+      - name: a
+        dtype: i4
+        ndim: '0'
+      - name: b((?:_|\d)*\d+)
+        dtype: f8
+        ndim: '0'
+        repeated: 'true'
+      name_regex: 'false'
+      repeated: 'false'
+      optional: 'false'
+      value_regex: 'false'
+      metadata: {}
+    validation_options:
+      skip: []
+  data_parquet:
+    filename:
+    - pattern: .*\.parquet
+      include: 'true'
+    ignore: 'false'
+    standard: parquet
+    objects:
+    - name: table
+      schema:
+      - name: a
+        dtype: i4
+      - name: b((?:_|\d)*\d+)
+        dtype: f8
+        repeated: 'true'
+      name_regex: 'false'
+      repeated: 'false'
+      optional: 'false'
+      value_regex: 'false'
+      metadata: {}
+    validation_options:
+      skip: []
+delivery_meta:
+  schema_version: 0.1.0
+  global_validation_options:
+    skip: []
+    missing_filetypes_ok: 'false'
+    no_assigned_filetype_ok: 'false'
+custom_metadata:
+  custom_parameter: '1'

@@ -76,10 +76,12 @@ SUPPORTED_DTYPE_NAMES = (
     # fixed-width 5-byte field.
     r"V[1-9][0-9]*",
 )
+"""Data types we support."""
 
 SUPPORTED_DTYPE_RE = re.compile(
     r"\A(?:" + "|".join(SUPPORTED_DTYPE_NAMES) + r")\Z"
 )
+"""Regex for data types we support."""
 
 
 # FITS standard does not support i1, M, m, or f2
@@ -137,6 +139,7 @@ SSDV_FOR_ERROR = ", ".join(STANDARDS_SUPPORTING_DATA_VALIDATION)
 
 
 class TimeInfo(LabelElement):
+    """"""
     # Might be better to allow this to be None?
     delivery_start_date: date = special_field(
         required=True, default_factory=lambda: date(1900, 1, 1)
@@ -231,6 +234,7 @@ def decode_columnobject_name(
 
 
 class ColumnObject(LabelElement):
+    """"""
     repeated: bool = False
     name_regex: bool = False
     ndim: int = 0
@@ -265,16 +269,19 @@ class ColumnObject(LabelElement):
 
 
 class FITSColumnObject(ColumnObject):
+    """"""
     _supported_dtype_re = FITS_TABLE_DTYPE_RE
     _parent_file_format = "FITS"
 
 
 class ParquetColumnObject(ColumnObject):
+    """"""
     _supported_dtype_re = PARQUET_DTYPE_RE
     _parent_file_format = "Parquet"
 
 
 class ObjectMetadata(LabelElement):
+    """"""
     value: int | float | bool | ExplicitNullT | str | None = None
     value_regex: bool = False
     objtype: str | None = None
@@ -293,6 +300,7 @@ class ObjectMetadata(LabelElement):
 
 
 class ASDFObjectMetadata(ObjectMetadata):
+    """"""
     @classmethod
     def _validate_label(
         cls, spec: dict[str, Any], lpath: str
@@ -309,6 +317,7 @@ class ASDFObjectMetadata(ObjectMetadata):
 
 
 class FITSObjectMetadata(ObjectMetadata):
+    """"""
     @classmethod
     def _validate_label(
         cls, spec: dict[str, Any], lpath: str
@@ -340,6 +349,9 @@ def decode_dataobject_name(
 
 
 class DataObject(LabelElement):
+    """
+    Represents a single data object -- an array, table, etc. -- in a filetype.
+    """
     objtype: str | None = None
     name: str | list[str] | re.Pattern[str] | list[re.Pattern[str]] | None = (
         special_field(
@@ -415,6 +427,7 @@ class DataObject(LabelElement):
 
 
 class ASDFDataObject(DataObject):
+    """"""
     # Can't just re-declare as dict[str, ASDFObjectMetadata] because
     # that fails type-checking because "dict is invariant".  I used to
     # understand what that meant :-/
@@ -467,7 +480,6 @@ class ASDFDataObject(DataObject):
                     )
                 )
 
-            # TODO, maybe: more precise rule for what is array-like
             if "array" not in objtype:
                 if spec["ndim"] is not None:
                     errors.append(
@@ -493,6 +505,7 @@ class ASDFDataObject(DataObject):
 
 
 class FITSDataObject(DataObject):
+    """"""
     # see notes in ASDFDataObject
     metadata: dict[str, ObjectMetadata] = special_field(
         decode_value=partial(
@@ -576,6 +589,7 @@ class FITSDataObject(DataObject):
 
 
 class ParquetDataObject(DataObject):
+    """"""
     # see notes in ASDFDataObject
     schema: list[ColumnObject] = special_field(
         decode_value=partial(
@@ -620,17 +634,20 @@ class ParquetDataObject(DataObject):
 
 
 class FiletypeValidationOptions(LabelElement):
+    """"""
     skip: list[str]
     object_check_hook: str | None = None
 
 
 class GlobalValidationOptions(LabelElement):
+    """"""
     skip: list[str]
     missing_filetypes_ok: bool = False
     no_assigned_filetype_ok: bool = False
 
 
 class DeliveryMeta(LabelElement):
+    """"""
     schema_version: str = special_field(
         required=True, default="<schema version missing>"
     )
@@ -638,11 +655,13 @@ class DeliveryMeta(LabelElement):
 
 
 class FilePattern(LabelElement):
+    """"""
     pattern: re.Pattern[str] = special_field(required=True, default=r"\A(?!)")
     include: bool = True
 
 
 def decode_as_filepattern(val: FieldNode, lpath: str) -> FilePattern:
+    """"""
     if not isinstance(val, ScalarNode):
         return decode_as_element(val, lpath, element=FilePattern)
 
@@ -664,6 +683,7 @@ def decode_as_filepattern(val: FieldNode, lpath: str) -> FilePattern:
 
 
 def decode_as_filepatterns(val: FieldNode, lpath: str) -> list[FilePattern]:
+    """"""
     pats = decode_as_list(val, lpath, decode_element=decode_as_filepattern)
     # sort all the exclusions after all the inclusions
     # OR on regex substring search is associative and commutative, so it's
@@ -699,6 +719,7 @@ def decode_objects_with_std(
 
 
 class Filetype(LabelElement):
+    """"""
     filename: list[FilePattern] = special_field(
         decode_value=decode_as_filepatterns
     )
@@ -806,6 +827,7 @@ class Filetype(LabelElement):
 
 
 class Label(LabelElement):
+    """"""
     dataset: str = special_field(required=True, default="<name missing>")
     delivery_id: int | str = special_field(
         required=True, default="<delivery_id missing>"

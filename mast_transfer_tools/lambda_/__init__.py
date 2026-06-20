@@ -1,5 +1,5 @@
 """This submodule contains all of the components used exclusively by
-the AWS lambdas needed by the MAST upload server."""
+the upload initiation Lambda function."""
 
 from ..utilz import __getattr__impl, ModuleType
 

@@ -26,6 +26,13 @@ from mast_transfer_tools.utilz.english import repr_rx
 def check_hdu_type(
     hdu: _BaseHDU, spec: DataObject, _valopts: FiletypeValidationOptions
 ) -> list[str]:
+    """
+    Does HDU have the primary / extension type given in `spec`?
+
+    Returns:
+        [] if match is ok, list of failures if not.
+    """
+
     if spec.objtype is None:
         return []
 
@@ -61,9 +68,14 @@ def check_hdu_name(
 
 
 def check_hdu_schema(
-    hdu: _BaseHDU, spec: DataObject, valopts: FiletypeValidationOptions
+    hdu: _BaseHDU, spec: DataObject, _valopts: FiletypeValidationOptions
 ) -> dict[str, list[str]]:
+    """
+    Does this HDU match the schema specified in `spec`?
 
+    Returns:
+        {} if match is ok, dict of failures if not.
+    """
     if spec.schema is None:
         return {}
 
@@ -89,7 +101,15 @@ def check_hdu_schema(
 def check_hdu_array_props(
     hdu: _BaseHDU, spec: DataObject, valopts: FiletypeValidationOptions
 ) -> list[str]:
-    if not isinstance(hdu, (fits.PrimaryHDU, fits.ImageHDU)):
+    """
+    Does `hdu` have the array properties specified in `spec`?
+
+    Returns:
+        [] if match is ok, list of failures if not.
+    """
+    if not isinstance(
+        hdu, (fits.PrimaryHDU, fits.ImageHDU, fits.CompImageHDU)
+    ):
         # NOTE: this should never get here, but there's no reason to treat it
         #  as a meaningful failure at this point -- it's not the checker's job
         #  to enforce label validation rules
@@ -118,6 +138,7 @@ def check_hdu_array_props(
 
 @dataclasses.dataclass
 class HduMeta:
+    """"""
     uniform: None | ObjectMetadata = None
     by_index: dict[int, ObjectMetadata] = dataclasses.field(
         default_factory=dict
@@ -127,6 +148,7 @@ class HduMeta:
 def check_hdu_meta(
     hdu: _BaseHDU, spec: DataObject, _valopts: FiletypeValidationOptions
 ) -> dict[str, list[str]]:
+    """Check the metadata (i.e. header) of an individual HDU against `spec`."""
     if spec.metadata is None:
         return {}
 
@@ -229,6 +251,13 @@ def check_hdu_meta(
 def check_hdu(
     hdu: _BaseHDU, spec: DataObject, valopts: FiletypeValidationOptions
 ) -> dict[str, list[str]]:
+    """
+    Does `hdu` match `spec` (possibly skipping some checks as specified
+    in `valopts`?
+
+    Returns:
+        dict like {check_name: failures}. Empty if all checks passed.
+    """
     # this silly-looking internal organization limits the scopes of
     # the inner functions' variables so I can reuse their names
     # without running into type consistency issues

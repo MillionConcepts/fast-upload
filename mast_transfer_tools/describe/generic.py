@@ -11,16 +11,20 @@ of classes of files.
 # or in describe/__init__.py.
 
 import dataclasses
+import re
 
 from collections import defaultdict
 from pathlib import Path
-import re
 from typing import Any, Collection
 
-from mast_transfer_tools.labels import Filetype, FilePattern
+
+GROUPPAT = re.compile(r"(.*?)((?:_|\d)*\d+)$")
+"""Suffix patterns we auto-recognize for repeated objects."""
+
 
 @dataclasses.dataclass
 class FileDescription:
+    """Simple dataclass for holding file descriptions."""
     fn: Path
     standard: str | None = None
     objects: list[dict[str, Any]] | None = None
@@ -29,6 +33,7 @@ class FileDescription:
 
 
 def sanitize_object_description(obj: dict) -> dict:
+    """Clean temporary identifiers added by unify_descriptions() functions."""
     for k in ("group_id", "stem"):
         obj.pop(k, "")
     if "schema" in obj:
@@ -129,37 +134,6 @@ def _n_unique_groups(files: list[list[dict]]) -> int:
     return len(lengths)
 
 
-GROUPPAT = re.compile(r"(.*?)((?:_|\d)*\d+)$")
-
-
-def assign_ordered_stemgroups(
-    hdul: list[dict],
-    stems: Collection[str]
-) -> tuple[list[dict], dict[str, int], str | None]:
-    ix, active_stem = -1, None
-    stemgroups = {}
-    for hdu in hdul:
-        if m := GROUPPAT.match(hdu["name"]):
-            matches = [s for s in stems if s == m.group(1)]
-        else:
-            matches = []
-        if len(matches) > 1:
-            return hdul, stemgroups, "redundant stems"
-        elif len(matches) == 1:
-            if active_stem is None and matches[0] in stemgroups:
-                return hdul, stemgroups, "repeated group"
-            if matches[0] != active_stem:
-                ix += 1
-                stemgroups[active_stem] = ix
-            active_stem = matches[0]
-            hdu["stem"] = active_stem
-        else:
-            active_stem = None
-            ix += 1
-        hdu["group_id"] = ix
-    return hdul, stemgroups, None
-
-
 def chunk_repeated_ordered_objects(
     objlists: list[list[dict]]
 ) -> tuple[list[list[dict]], str | None]:
@@ -201,6 +175,10 @@ def chunk_repeated_ordered_objects(
 def unify_object_lists(
     objlists: list[list[dict]]
 ) -> tuple[dict | None, str | None]:
+    """
+    Attempt to 'unify' an arbitrary number of object lists, including unifying
+    any schemata in those objects.
+    """
     schemata_by_group = defaultdict(list)
     for objlist in objlists:
         for obj in objlist:
@@ -240,21 +218,33 @@ def unify_object_lists(
     return unified, None
 
 
-def unify_descriptions(descs: list[FileDescription]) -> list[FileDescription]:
-    stds: dict[str, FileDescription] = defaultdict(FileDescription)
-    for desc in descs:
-        cluster = stds[desc.standard]
-        if cluster.standard is None:
-            cluster.standard = desc.standard
+def assign_ordered_stemgroups(
+    objs: list[dict],
+    stems: Collection[str]
+) -> tuple[list[dict], dict[str, int], str | None]:
+    """
+    Heuristically group object/column names by stemming likely 'repeated'
+    names (suffixed with numbers).
+    """
+    ix, active_stem = -1, None
+    stemgroups = {}
+    for obj in objs:
+        if m := GROUPPAT.match(obj["name"]):
+            matches = [s for s in stems if s == m.group(1)]
         else:
-            assert cluster.standard == desc.standard
-
-        if desc.objects is not None:
-            cluster.errors.append(
-                f"{desc.fn!r}: files of type {desc.standard!r}"
-                " should not have an objects list"
-            )
-
-        cluster.fn.extend(desc.fn)
-
-    return list(stds.values())
+            matches = []
+        if len(matches) > 1:
+            return objs, stemgroups, "redundant stems"
+        elif len(matches) == 1:
+            if active_stem is None and matches[0] in stemgroups:
+                return objs, stemgroups, "repeated group"
+            if matches[0] != active_stem:
+                ix += 1
+                stemgroups[active_stem] = ix
+            active_stem = matches[0]
+            obj["stem"] = active_stem
+        else:
+            active_stem = None
+            ix += 1
+        obj["group_id"] = ix
+    return objs, stemgroups, None

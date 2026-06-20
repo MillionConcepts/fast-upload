@@ -14,20 +14,18 @@ YAMLString = str
 """alias for strings that can be parsed as valid YAML"""
 
 TransferType = Literal["staging", "sample"]
+"""Names of transfer categories"""
+
 TransferEntity = Literal["validator", "client", "lambda"]
-
-
-class ConfigBucketSpec(TypedDict):
-    bucket: str
-    prefix: str
-
-
-class LocationSpec(TypedDict):
-    config: ConfigBucketSpec
-    transfer_bucket_stem: str
+"""Named entities in transfer process"""
 
 
 class TaskConfig(TypedDict):
+    """
+    Format of full validation task configuration. The default task
+    configuration YAML object should contain all of these keys. Dataset-
+    specific objects may contain any subset.
+    """
     az_id: str
     subnet_id: str
     # name of ecs cluster in which to run task
@@ -36,9 +34,6 @@ class TaskConfig(TypedDict):
     sg_id: str
     # ecs task family
     family: str
-    # instance resource overrides
-    cpu: str
-    memory: str
 
 
 class ValPipeSettings(TypedDict):

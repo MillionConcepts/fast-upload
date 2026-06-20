@@ -757,6 +757,7 @@ class CognitoCredentialsManager:
 
 
 def decode_jwt_payload(jwt_token: str) -> JwtPayload:
+    """Decode a Cognito JWT token."""
     parts = jwt_token.split(".")
     if len(parts) != 3:
         raise ValueError("Invalid JWT format")
@@ -769,6 +770,11 @@ def decode_jwt_payload(jwt_token: str) -> JwtPayload:
 def get_authenticated_cognito_manager(
     cogconf: CognitoConfiguration,
 ) -> CognitoCredentialsManager:
+    """
+    Convenient entry point to this module: execute the Cognito OAuth workflow
+    and return a credentials manager authenticated with the retrieved
+    credentials.
+    """
     authenticator = CognitoOAuthAuthenticator(
         cognito_domain=cogconf.domain,
         client_id=cogconf.client_id,

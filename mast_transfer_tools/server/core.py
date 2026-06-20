@@ -49,7 +49,7 @@ from mast_transfer_tools.types import (
 from mast_transfer_tools.errors import (
     InvalidFileIndexError,
     InvalidLabelError,
-    LockExistsError
+    BucketLockedError
 )
 from mast_transfer_tools.io import loader_for
 from mast_transfer_tools.utilz.futures import is_crashed, is_running
@@ -138,11 +138,20 @@ def load_data(
 
 
 def _maybe_check_objs(
-    spec: Filetype, data: Any, *, debug: bool = False
+    spec: Filetype,
+    data: ParquetFile | AsdfFile | HDUList,
+    *,
+    debug: bool = False
 ) -> tuple[dict, dict | None]:
     """
     Check data against objects defined in filetype, if any are defined, plus
-    an option custom object-check hook.
+    an optional custom object-check hook.
+
+    Returns:
+        failures: dict like {check_name: failures}. If empty, validation
+            succeeded.
+        exception_report: Formatted report on encountered exception if some
+            validation step crashed. None otherwise.
     """
     hook_module = getattr(spec.validation_options, "object_check_hook", None)
 
@@ -164,9 +173,8 @@ def validate_file_content(
     key: str,
     *,
     spec: Filetype,
-    return_data: bool = False,
     debug: bool = False
-) -> tuple[dict | None, Any]:
+) -> dict:
     """
     Perform data-level validation as specified by filetype. Intended
     primarily to be called by validate_file().
@@ -175,13 +183,16 @@ def validate_file_content(
         some task that requires actually loading some of the contents of a
         file, even if it's just validating the basic file format (e.g. 'is
         this valid FITS?')
+
+    Returns:
+        dict like {'status': status, 'message': message}.
     """
     try:
         data, load_err = load_data(spec, key, bucket, debug=debug)
     except Exception as ex:
-        return validation_error_msg(ex), None
+        return validation_error_msg(ex)
     if load_err is not None:
-        return load_err, None
+        return load_err
     failures, check_err = _maybe_check_objs(spec, data)
     if check_err is not None:
         result = check_err
@@ -189,11 +200,9 @@ def validate_file_content(
         result = validation_failure_message(failures)
     else:
         result = success_msg()
-    if not return_data:
-        if hasattr(data, "close"):
-            data.close()
-        return result, None
-    return result, data
+    if hasattr(data, "close"):
+        data.close()
+    return result
 
 
 OBJECT_LEVEL_VALIDATION_ATTRIBUTES = (
@@ -265,7 +274,7 @@ def validate_file(
     # required, which is why we don't just check for skips inline of the
     # validation function.
     if spec is not None:
-        return validate_file_content(bucket, key, spec=spec)[0]
+        return validate_file_content(bucket, key, spec=spec)
 
     return success_msg()
 
@@ -730,7 +739,7 @@ class ValidationSession:
                 "ref": "lock",
                 "status": "failure",
                 "message": {"summary": "could not acquire lock"},
-            }, LockExistsError(f"status {lock_status}")
+            }, BucketLockedError(f"status {lock_status}")
         if do_write:
             control_bucket.put(
                 self.agent_id, names.lock_key("validator"), literal_str=True
@@ -857,6 +866,9 @@ class ValidationSession:
 
     @staticmethod
     def _send_sqs_report(report: ValidationSQSReport) -> None:
+        """
+        Send a message to conf.VAL_PIPE_SQS_QUEUE_URL on pipeline exit.
+        """
         sqs = make_boto_client('sqs', verify=False)
         sqs.send_message(
             QueueUrl=conf.VAL_PIPE_SQS_QUEUE_URL,
@@ -864,6 +876,7 @@ class ValidationSession:
         )
 
     def _format_sqs_report(self) -> ValidationSQSReport:
+        """Format a pipeline exit status message for SQS"""
         msg = {}
         msg["dataset"] = self.identifiers["dataset"]
         msg["delivery_id"] = self.identifiers["delivery_id"]

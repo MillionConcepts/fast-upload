@@ -107,7 +107,8 @@ class S3TSVReader:
 
         Note: clears `self.logtail` on execution.
 
-        Returns: True if there are any new log entries, False if not.
+        Returns:
+            True if there are any new log entries, False if not.
         """
         if len((text := self._logpop())) == 0:
             return False

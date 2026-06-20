@@ -26,7 +26,7 @@ from mast_transfer_tools.upload.cognito import (
 )
 import mast_transfer_tools.config as conf
 from mast_transfer_tools.types import TransferType, PipelineNetworkConfig
-from mast_transfer_tools.errors import LockExistsError
+from mast_transfer_tools.errors import BucketLockedError
 from mast_transfer_tools.s3log.s3tsvreader import S3TSVReader
 from mast_transfer_tools.s3log.s3tsvwriter import S3TSVWriter
 
@@ -519,7 +519,7 @@ class UploadClient:
         elif lock_status == LockStatus.HELD:
             do_write = False
         else:
-            raise LockExistsError(f"status {lock_status}")
+            raise BucketLockedError(f"status {lock_status}")
         if do_write:
             self.control_bucket.put(
                 self.own_agent_id, self.lock_key, literal_str=True

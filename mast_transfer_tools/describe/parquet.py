@@ -19,6 +19,21 @@ from mast_transfer_tools.validation.parquet import PARQUET_PHYSICAL_TYPE_MAP
 def unify_descriptions(
     descriptions: Collection[FileDescription]
 ) -> tuple[list[dict] | None, str | None]:
+    """
+    Attempt to unify a collection of Parquet file descriptions into a list of
+    dicts suitable for use as the DataObjects of a Filetype.
+
+    Args:
+        descriptions: collection of FileDescriptions populated with
+            describe_file()
+
+    Returns:
+        objects: if unification succeeded, a list of dicts that can be used
+            to initialize DataObjects; if it didn't, None
+        failure: if unification failed, a string describing the failure;
+            if it succeeded, None
+    """
+
     if not all(d.standard == "parquet" for d in descriptions):
         return None, "Not all files are Parquet"
     table, failure = unify_object_lists([d.objects for d in descriptions])
@@ -28,6 +43,9 @@ def unify_descriptions(
 
 
 def describe_file(fn: str | Path, bucket: Bucket | None = None) -> list[dict]:
+    """
+    Describe objects (always a single object) in an individual parquet file.
+    """
     file = parquetopen_generic(fn, bucket=bucket)
     row: pa.Table = file.read_row_group(0).take([0])
     schema = []

@@ -22,11 +22,15 @@ DEFAULT_ASDF_DATA_OBJECT_TYPES = (
     pd.DataFrame,
     pyarrow.lib.Table,
 )
+"""Types we by default recognize as 'data' in an ASDF file."""
 
 
 # NOTE: there is no consistent top-level tag class we can use to more
 # consistently type this.
 def sanitize_data_tag(node: Any, *, autoload: bool = False) -> Any:
+    """
+    Get the array from a lazy NDArrayType node; otherwise return the node.
+    """
     if isinstance(node, asdf.tags.core.NDArrayType):
         if autoload is True and node._array is None:
             return np.asarray(node)
@@ -128,7 +132,17 @@ def asdfopen_generic(
     bucket: Bucket | str | None = None,
     blocksize: int = DEFAULT_CHUNK_SIZE,
 ) -> asdf._asdf.AsdfFile:
-    """Open an S3 object or local file as an AsdfFile."""
+    """
+    Open an S3 object or local file as an AsdfFile.
+
+    Args:
+        key: path or S3 key
+        bucket: Bucket object or bucket name if this is an S3 object; None if
+            a local file
+        blocksize: block size for read operation, relevant only for S3
+    Returns:
+        an AsdfFile object created from `key`
+    """
     if bucket is None:
         return asdf.open(key, strict_extension_check=True)
 

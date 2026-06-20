@@ -13,9 +13,11 @@ LOG_FIELD_SPEC = (
     {"name": "message", "required": False},
     {"name": "agent_id", "required": True},
 )
+"""Column layout of TSV logs."""
 
 
 class LogFieldRec(TypedDict):
+    """Specification for an individual log field."""
     name: str
     required: bool
 

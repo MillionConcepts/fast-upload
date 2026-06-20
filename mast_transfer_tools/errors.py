@@ -1,16 +1,13 @@
 """Error types used throughout FAST."""
 
 
-# This is only used for locks on AWS buckets; "BucketLockedError" might
-# be a better name.
-class LockExistsError(PermissionError):
+class BucketLockedError(PermissionError):
     """
     An S3 bucket is locked by another instance of FAST.
     """
 
 
-# for similar reasons, "BucketLockStolenError" might be better here
-class LockNotFoundError(PermissionError):
+class BucketLockStolenError(PermissionError):
     """
     We expected to hold a lock on an S3 bucket but we don't.
     """

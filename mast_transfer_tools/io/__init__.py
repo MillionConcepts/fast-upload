@@ -23,6 +23,7 @@ def loader_for(
     | Callable[[str, Bucket | str | None], AsdfFile]
     | Callable[[str, Bucket | str | None], ParquetFile]
 ):
+    """Get the canonical loader function for a supported standard."""
     if standard not in STANDARDS_SUPPORTING_DATA_VALIDATION:
         raise TypeError(
             f"No standardized loader available for {standard} files."

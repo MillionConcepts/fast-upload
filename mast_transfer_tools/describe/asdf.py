@@ -15,7 +15,7 @@ from hostess.aws.s3 import Bucket
 from mast_transfer_tools.describe.generic import (
     sanitize_object_description,
     unify_object_lists,
-    FileDescription,
+    FileDescription, GROUPPAT,
 )
 from mast_transfer_tools.io.asdf import extract_objects, asdfopen_generic
 from mast_transfer_tools.labels import ASDF_TABLE_TYPES
@@ -88,10 +88,6 @@ def describe_asdf_object(obj: Any) -> dict[str, str | list[dict] | int]:
 def _n_unique_object_sets(trees: list[list[dict]]) -> int:
     """How many unique sets of objects exist among these trees?"""
     return len(set(frozenset([o["group_id"] for o in t]) for t in trees))
-
-
-GROUPPAT = re.compile(r"(.*?)((?:_|\d)*\d+)$")
-"""Suffix patterns we auto-recognize for repeated objects."""
 
 
 def assign_unordered_stemgroups(

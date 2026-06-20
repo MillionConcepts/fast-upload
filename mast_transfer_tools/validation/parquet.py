@@ -111,6 +111,10 @@ PARQUET_METADATA_FALSE_RE = re.compile(r"(?i)\A(?:f(?:alse)?|no|off|0)\Z")
 def convert_meta(
     raw_val: str, spec: ObjectMetadata
 ) -> str | bool | float | int:
+    """
+    Convert a Parquet metadata value (which is always a string) to a Python
+    object of an appropriate type as specified by `spec`.
+    """
     if isinstance(spec.value, bool):
         if PARQUET_METADATA_TRUE_RE.fullmatch(raw_val):
             return True

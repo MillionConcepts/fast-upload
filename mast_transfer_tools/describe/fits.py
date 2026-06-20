@@ -16,7 +16,6 @@ from mast_transfer_tools.describe.generic import (
 )
 from mast_transfer_tools.io.fits import fitsopen_generic
 from mast_transfer_tools.validation.generic import normalize_dt_rep
-from mast_transfer_tools.utilz.compression import MCFile
 from mast_transfer_tools.utilz.english import a_type
 
 SupportedHDU = (
@@ -25,6 +24,7 @@ SupportedHDU = (
 
 
 def describe_hdu(hdu: SupportedHDU) -> dict:
+    """Describe an individual HDU."""
     if isinstance(hdu, (fits.PrimaryHDU, fits.ImageHDU, fits.CompImageHDU)):
         description = describe_image_hdu(hdu)
     elif isinstance(hdu, fits.BinTableHDU):
@@ -57,13 +57,17 @@ def describe_hdu(hdu: SupportedHDU) -> dict:
     return description
 
 
-def describe_image_hdu(hdu: fits.PrimaryHDU | fits.ImageHDU) -> dict:
+def describe_image_hdu(
+    hdu: fits.PrimaryHDU | fits.ImageHDU | fits.CompImageHDU
+) -> dict:
+    """Describe an image, primary, or tile-compressed image HDU."""
     if hdu.data is None:
         return {}
     return {"ndim": hdu.data.ndim, "dtype": normalize_dt_rep(hdu.data.dtype)}
 
 
 def describe_bintable_hdu(hdu: fits.BinTableHDU) -> dict:
+    """Describe a binary table HDU."""
     if hdu.data is None:
         return {}
     dtype = hdu.data.dtype
@@ -128,11 +132,3 @@ def describe_file(fn: str | Path, bucket: Bucket | None = None) -> list[dict]:
     for hdu in fitsopen_generic(fn, bucket):
         hdu_descriptions.append(describe_hdu(hdu))
     return hdu_descriptions
-
-
-def describe_objects(desc: FileDescription, fp: MCFile) -> None:
-
-    assert desc.objects is None
-    desc.objects = []
-    for hdu in fits.open(fp):
-        desc.objects.append(describe_hdu(hdu))

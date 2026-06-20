@@ -41,6 +41,12 @@ def comparable_to_yaml_literal(obj: Any) -> bool:
 def check_obj_type(
     obj: Any, spec: DataObject, _valopts: FiletypeValidationOptions
 ) -> list[str] | None:
+    """
+    Does `obj` match the object type specified in `spec`?
+
+    Returns:
+        None if match is ok, list of failures if not.
+    """
     typename = spec.objtype
     if typename is None:
         return None
@@ -62,6 +68,12 @@ def check_obj_type(
 def check_obj_value(
     obj: Any, spec: DataObject, _valopts: FiletypeValidationOptions
 ) -> list[str] | None:
+    """
+    Does `obj` match the value specified in `spec`?
+
+    Returns:
+        None if match is ok, list of failures if not.
+    """
     if spec.value is None:
         return None
     if not comparable_to_yaml_literal(obj):
@@ -93,6 +105,12 @@ def check_obj_value(
 def check_obj_schema(
     obj: Any, spec: DataObject, _valopts: FiletypeValidationOptions
 ) -> dict[str, list[str]] | None:
+    """
+    Does `obj` match the schema specified in `spec`?
+
+    Returns:
+        None if match is ok, dict of failures if not.
+    """
     if not spec.schema:
         return None
     if isinstance(obj, astropy.table.Table):
@@ -119,6 +137,12 @@ def check_obj_schema(
 def check_obj_array_props(
     obj: Any, spec: DataObject, valopts: FiletypeValidationOptions
 ) -> list[str] | None:
+    """
+    Does `obj` have the array properties specified in `spec`?
+
+    Returns:
+        None if match is ok, list of failures if not.
+    """
     if spec.dtype is None and spec.ndim is None:
         return None
     if "dtype" in valopts.skip and "ndim" in valopts.skip:
@@ -175,6 +199,13 @@ OBJ_CHECK_MAP = MPt(
 def check_obj(
     obj: Any, obj_spec: DataObject, options: FiletypeValidationOptions
 ) -> dict[str, str]:
+    """
+    Does `obj` match `obj_spec` (possibly skipping some checks as specified
+    in `options`?
+
+    Returns:
+        dict like {check_name: failures}. Empty if all checks passed.
+    """
     failures = {}
     for checkname, checkfunc in OBJ_CHECK_MAP.items():
         if checkname in options.skip:
@@ -191,6 +222,10 @@ def _progress_matches(
     key: str | int,
     equal: Callable[[str, str], bool],
 ) -> list[tuple[str, Any]]:
+    """
+    Helper for `find_objects()`. Accumulate objects matching some equality
+    function, possibly from nested lists or dicts.
+    """
     new_matches = []
     for p, m in matches:
         if isinstance(m, list) and isinstance(key, int) and len(m) > key:
@@ -203,6 +238,12 @@ def _progress_matches(
 
 
 def find_objects(file: AsdfFile, objspec: DataObject) -> list[tuple[str, Any]]:
+    """
+    Find all objects in an ASDF file that appear to be described by `objspec`.
+
+    Returns:
+        list of tuples like [(path, node), ...] for all matching objects.
+    """
     if isinstance(objspec.name, list):
         if len(objspec.name) == 0:
             return []
@@ -227,6 +268,11 @@ def find_objects(file: AsdfFile, objspec: DataObject) -> list[tuple[str, Any]]:
 
 
 def check_file(file: AsdfFile, spec: Filetype) -> dict[str, list[str]]:
+    """
+    Compare FILE to the expectations described by SPEC.
+    Return a semi-structured description of the differences.
+    An empty dict means no significant differences were found.
+    """
     if "all" in spec.validation_options.skip:
         return {}
     failures = {}

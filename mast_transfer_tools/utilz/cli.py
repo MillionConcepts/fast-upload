@@ -37,17 +37,6 @@ from mast_transfer_tools.labels import (
 from typing import Literal
 
 
-def configure_logging(level: int) -> None:
-    """
-    Configure the `logging` module appropriately for MTT CLI programs.
-    """
-    logging.basicConfig(
-        level=level,
-        # TODO message formatting etc
-    )
-    logging.captureWarnings(True)  # NOQA: FBT003
-
-
 def require_directory(dir: Path) -> None:
     """
     Command line validation: require 'dir' to be an existing directory.
@@ -191,53 +180,6 @@ def fatal_yaml_error(e: YAMLError, yaml_file: Path) -> NoReturn:
 
     sys.stderr.write("".join(msglines))
     sys.exit(1)
-
-
-@contextmanager
-def atomic_update(path: str | Path) -> Iterator[BufferedRandom]:
-    """
-    Atomically update a file.  Use as a context manager:
-
-        with atomic_update(path) as fp:
-            fp.write(new_file_contents)
-
-    When the context is exited normally, the file at `path` will
-    be updated atomically with the new contents written to `fp`;
-    if it didn't already exist, it will be created at that point.
-
-    If an exception is thrown out of the with-block, `path` will
-    be unchanged; if it didn't already exist, it will continue to
-    not exist.
-
-    The stream 'fp' is always opened for reading and writing,
-    in binary mode. If you want text mode, wrap 'fp' in a TextIOWrapper
-    (you probably should set write_through=True on the TextIOWrapper).
-    """
-    # TODO: This is the standard algorithm for atomic file update on Unix.
-    # Something different needs to be done on Windows and I don't know
-    # what that something is.
-
-    if not isinstance(path, Path):
-        path = Path(path)
-
-    (fd, tmppath) = mkstemp(
-        prefix=path.stem + ".", suffix=".new", dir=path.parent
-    )
-    try:
-        fp = open(fd, "w+b", closefd=False)  # noqa: SIM115
-        yield fp
-        fp.close()
-        os.fsync(fd)
-        os.rename(tmppath, path)
-        # technically we ought to fsync the containing _directory_ at
-        # this point but it's unlikely to matter
-
-    except:
-        os.unlink(tmppath)
-        raise
-
-    finally:
-        os.close(fd)
 
 
 def require_index(index_file: Path) -> DataFrame:
