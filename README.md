@@ -21,7 +21,7 @@ The primary interface is the `mast-upload` command. Detailed help for it and
 its subcommands are available with `mast-upload --help` and 
 `mast-upload <subcommand> --help`.
 
-[basic_usage.md](basic_usage.md) includes step-by-step instructions for a 
+[basic_usage.md](/docs/basic_usage.md) includes step-by-step instructions for a 
 standard dataset submission workflow.
 
 [MAST]: https://archive.stsci.edu/
