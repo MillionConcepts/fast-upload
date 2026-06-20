@@ -8,7 +8,7 @@ def fitsopen_generic(
 ) -> fits.HDUList:
     """
     Open an S3 object or local file as an HDUList. Note that unlike the ASDF
-    and FITS versions, this does not accept a `blocksize` argument. This is
+    and Parquet versions, this does not accept a `blocksize` argument. This is
     because it relies on astropy's FITS S3 behaviors, which are already
     somewhat 'smart'.
 

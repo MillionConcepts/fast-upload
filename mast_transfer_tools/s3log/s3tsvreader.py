@@ -59,8 +59,7 @@ class S3TSVReader:
         stop() should be called when subsequent reads from the log would have
         no effect on behavior; i.e., the consumer of the log information has
         already received a shutdown instruction, completed its work, entered
-        an invalid state, etc. There is also no provision for restarting a
-        reader once stopped; construct a new reader.
+        an invalid state, etc.
         """
         if self.tail_future is not None:
             self.tail_future.stop()

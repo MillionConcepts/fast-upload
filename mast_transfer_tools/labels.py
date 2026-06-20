@@ -1,6 +1,8 @@
-"""A MAST 'label' describes a data set that is, or will be, archived
+"""
+A MAST 'label' describes a data set that is, or will be, archived
 at MAST as a single logical entity.  It is roughly comparable to a PDS
-(Planetary Data System) label, with different emphasis.
+(Planetary Data System) label, but at a higher level of abstraction and
+with different emphasis.
 
 Labels are stored on disk in YAML format.
 """

@@ -118,13 +118,13 @@ def chunk_repeated_unordered_objects(
 ) -> tuple[list[list[dict]], str | None]:
     """
     Find groups of 'repeated' unordered objects (notionally ASDF nodes)
-    shared among all elements of trees. Limited to finding 'repetitions'
+    shared among all elements of `trees`. Limited to finding 'repetitions'
     defined by variable numeric / underscore patterns suffixed to some stem,
     performing stemming only on the final element of the path (which is a
     tuple of str | int | bool).
 
     Unlike rules for FITS HDULs and table schemata, consistent ordering is
-    not required with respect to other nodes across all elements of 'trees' --
+    not required with respect to other nodes across all elements of `trees` --
     this would make no sense, as there is no canonical ordering on ASDF trees.
     """
     # everything is the same; moving on
@@ -153,6 +153,7 @@ def chunk_repeated_unordered_objects(
 def unify_tree_descriptions(
     object_descriptions: list[list[dict]],
 ) -> tuple[dict | None, str | None]:
+    """"""
     trees = []
     for d in object_descriptions:
         trees.append([o | {"group_id": o["name"]} for o in d])
