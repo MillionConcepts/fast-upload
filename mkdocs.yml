@@ -14,6 +14,8 @@ plugins:
         python:
           paths: [src]
           options:
+            members: true
+            show_submodules: true
             docstring_style: google
             docstring_section_style: list
             members_order: source
