@@ -21,6 +21,21 @@ from mast_transfer_tools.labels import ASDF_TABLE_TYPES
 from mast_transfer_tools.validation.generic import normalize_dt_rep
 
 
+def describe_structured_dtype(dtype: np.dtype) -> list[dict]:
+    """Generate a table schema description from a structured dtype."""
+    if dtype.names is None:
+        raise TypeError(f"Cannot describe scalar dtype {dtype!r} as a table.")
+    assert dtype.fields is not None
+    return [
+        {
+            "name": name,
+            "dtype": normalize_dt_rep(dtype.fields[name][0]),
+            "ndim": dtype.fields[name][0].ndim,
+        }
+        for name in dtype.names
+    ]
+
+
 def describe_asdf_table(
     table: np.ndarray | astropy.table.Table | pa.Table | pd.DataFrame,
 ) -> dict[Literal["schema"], list[dict]]:
@@ -43,22 +58,13 @@ def describe_asdf_table(
             # NOTE: ndim not supported for nested pyarrow types
             schema.append(col | {"name": name, "ndim": 0})
     elif isinstance(table, astropy.table.Table):
-        for colname, col in table.columns.items():
-            column = {
-                "name": colname,
-                "dtype": normalize_dt_rep(col.dtype),
-                "ndim": col.dtype.ndim,
-            }
-            schema.append(column)
+        schema = describe_structured_dtype(table.as_array().dtype)
     elif isinstance(table, np.ndarray):
-        for name, dt_shape in table.dtype.fields.items():
-            base = dt_shape[0]
-            column = {
-                "name": name,
-                "dtype": normalize_dt_rep(base),
-                "ndim": base.ndim,
-            }
-            schema.append(column)
+        schema = describe_structured_dtype(table.dtype)
+    else:
+        raise TypeError(
+            f"Don't know how to describe object of type {type(table)}"
+        )
     return {"schema": schema}
 
 
@@ -110,6 +116,7 @@ def assign_unordered_stemgroups(
             return "redundant stems"
         elif len(matches) == 1:
             obj["group_id"] = matches[0]
+            obj["stem"] = matches[0]
     return None
 
 
@@ -134,8 +141,9 @@ def chunk_repeated_unordered_objects(
     unshared = set()
     for tree in trees[1:]:
         names = set(obj["name"] for obj in tree)
-        shared = shared.intersection(names)
+        new_shared = shared.intersection(names)
         unshared = unshared.union(shared.symmetric_difference(names))
+        shared = new_shared
     stems = set()
     for u in unshared:
         if m := GROUPPAT.match(u[-1]):

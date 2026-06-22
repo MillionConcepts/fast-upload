@@ -75,7 +75,17 @@ def unify_name(existing: dict, new: dict) -> tuple[dict, str | None]:
     if (stem := new.get("stem")) is not None:
         if existing is not None and existing.get("stem") != stem:
             return {}, "mismatched repeated stem"
-        return {"repeated": True, "name": rf"{stem}((?:_|\d)*\d+)"}, None
+        if isinstance(stem, str):
+            return {
+                "repeated": True,
+                "name": rf"{stem}((?:_|\d)*\d+)",
+                "name_regex": True
+            }, None
+        return {
+            "repeated": True,
+            "name": (*stem[:-1], rf"{stem[-1]}((?:_|\d)*\d+)"),
+            "name_regex": True
+        }, None
     elif existing is not None and existing["name"] != new["name"]:
         namechars = []
         minlen = min(len(existing["name"]), len(new["name"]))
@@ -87,7 +97,7 @@ def unify_name(existing: dict, new: dict) -> tuple[dict, str | None]:
                 namechars.append(existing["name"][i])
         for i in range(maxlen - minlen):
             namechars.append(".?")
-        return {"name": "".join(namechars)}, None
+        return {"name": "".join(namechars), "name_regex": True}, None
     return {"name": new["name"]}, None
 
 
@@ -152,8 +162,9 @@ def chunk_repeated_ordered_objects(
     unshared = set()
     for objlist in objlists[1:]:
         names = set(obj.get("name") for obj in objlist)
+        new_shared = shared.intersection(names)
         unshared = unshared.union(shared.symmetric_difference(names))
-        shared = shared.intersection(names)
+        shared = new_shared
     stems = set()
     for u in unshared:
         if m := GROUPPAT.match(u):
