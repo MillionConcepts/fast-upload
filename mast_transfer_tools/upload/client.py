@@ -216,7 +216,10 @@ class UploadClient:
             self.lambda_client_config = lambda_client_config
         if isinstance(source, str) and source.startswith("s3://"):
             self.dataroot = None
-            self.source_bucket_name = source.replace("s3://", "")
+            self.source_bucket_name = source.removeprefix("s3://")
+        elif isinstance(source, Bucket):
+            self.dataroot = None
+            self.source_bucket_name = source.name
         elif isinstance(source, (Path, str)):
             self.dataroot = DataRoot(Path(source))
             self.source_bucket_name = None
@@ -236,7 +239,8 @@ class UploadClient:
             self.file_list.append(cf)
         try:
             try:
-                self.dataroot.ls()
+                if self.dataroot is not None:
+                    self.dataroot.ls()
             except (ClientError, FileNotFoundError) as e:
                 raise UploadClientError(
                     f"Cannot list contents of passed source "
@@ -245,7 +249,11 @@ class UploadClient:
             self.identifiers = {
                 "cb_name": None,
                 "tb_name": None,
-                "source": self.dataroot.name,
+                "source": (
+                    self.dataroot.name
+                    if self.dataroot is not None
+                    else self.source_bucket_name
+                ),
                 "dataset": dataset,
                 "delivery_id": delivery_id,
                 "transfer_type": transfer_type,
@@ -315,7 +323,7 @@ class UploadClient:
             self.identifiers["tb_name"], session=self.session
         )
         if self.source_bucket_name is not None:
-            self.source = DataRoot(
+            self.dataroot = DataRoot(
                 Bucket(self.source_bucket_name, session=self.session)
             )
         try:
@@ -580,8 +588,10 @@ class UploadClient:
 
     def _abspath(self, key: str | Path) -> str:
         """Absolute path of a file/key relative to data root"""
+        if self.dataroot is None:
+            return str(key)
         if not self.dataroot.is_local:
-            return key
+            return str(key)
         return str(self.dataroot.source / Path(key))
 
     def _log_transfer(self, file: ClientFile) -> None:

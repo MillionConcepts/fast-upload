@@ -30,9 +30,19 @@ dependencies = [
     "asdf",
     "asdf-astropy",
     "astropy",
+    "boto3",
+    "botocore",
     "click",
+    "cytoolz",
+    "dateutil",
+    "dustgoggles",
     "hostess[aws]",
+    "numpy",
+    "pandas",
     "pyarrow",
+    "pyyaml",
+    "requests",
+    "rich",
     "s3fs",
 ]
 
@@ -41,20 +51,12 @@ tests = [
     "pytest",
     "hypothesis",
 ]
-typecheck = [
-    "mypy",
-    "pandas-stubs",
-    "pyarrow-stubs",
-    "types-PyYAML",
-    "types-python-dateutil",
-]
 
 [project.urls]
 Repository = "https://github.com/MillionConcepts/fast-upload"
 
 [project.scripts]
 mast-upload = "mast_transfer_tools.upload.cli:main"
-mast-transfer-admin = "mast_transfer_tools.admin.cli:main"
 
 [build-system]
 requires = ["setuptools >= 77"]
