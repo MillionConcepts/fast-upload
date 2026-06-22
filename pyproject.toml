@@ -55,15 +55,12 @@ Repository = "https://github.com/MillionConcepts/fast-upload"
 [project.scripts]
 mast-upload = "mast_transfer_tools.upload.cli:main"
 mast-transfer-admin = "mast_transfer_tools.admin.cli:main"
-# TBD: AWS lambda entry point probably goes here
-# TBD: server daemon executables here?
 
 [build-system]
 requires = ["setuptools >= 77"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-# Keep this list in sync with the type checker configuration below.
 include = [
     "mast_transfer_tools",
     "mast_transfer_tools.*",
