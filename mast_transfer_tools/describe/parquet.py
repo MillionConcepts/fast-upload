@@ -55,7 +55,12 @@ def describe_file(fn: str | Path, bucket: Bucket | None = None) -> list[dict]:
     for i, field in enumerate(tuple(row.schema)):
         name, ftype = field.name, field.type
         column = {"name": name}
-        if pa.types.is_primitive(ftype) or pa.types.is_date(ftype):
+        # to_pandas_dtype() gives the wrong result for both Arrow date types
+        # (namely pa.types.date32 and pa.types.date64).  pa.types.is_primitive
+        # is true for Arrow date types, so we need to check is_date first.
+        if pa.types.is_date(ftype):
+            column["dtype"] = "M8[D]"
+        elif pa.types.is_primitive(ftype):
             column["dtype"] = normalize_dt_rep(
                 np.dtype(ftype.to_pandas_dtype())
             )
