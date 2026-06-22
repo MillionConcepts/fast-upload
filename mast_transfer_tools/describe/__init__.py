@@ -38,7 +38,6 @@ PROBABLE_DOC_SUFFIXES = {
     "tex", "ltx", "bib",
     "pdf", "doc", "docx",
     "html", "xhtml", "htm",
-    # TODO there are dozens more
 }
 
 

@@ -244,7 +244,6 @@ def _spec_has_data_validation(spec: Filetype | None) -> bool:
     return False
 
 
-# TODO: define the returned object better
 def validate_file(
     key: str, bucket: Bucket, *, checksum: str | None, spec: Filetype | None
 ) -> dict[str, str | dict | None]:
@@ -390,7 +389,6 @@ class ValidationManager:
                 checksum=rec.get("checksum")
             )
 
-    # TODO: specify this returned object better
     def update_validation_results(self) -> dict[str, Any]:
         """
         Check our validation tasks to see if any have completed. Return

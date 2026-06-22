@@ -326,8 +326,6 @@ class ValidationState:
     uploaded them during this session. This condition might indicate a prior
     erroneous upload or an incomplete index, and these should ideally be
     managed by the client.
-
-    # TODO: 'ideally', pending risk-effort tradespace conversations with MAST.
     """
     wrong_files: list[str]
     """

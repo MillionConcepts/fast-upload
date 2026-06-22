@@ -12,13 +12,13 @@ from mast_transfer_tools.labels import ColumnObject, DataObject, ObjectMetadata
 from mast_transfer_tools.utilz.english import repr_rx
 
 
-def normalize_dt_rep(dt: np.dtype) -> str:
+def normalize_dt_rep(dtype: np.dtype) -> str:
     """
     'Normalized' string representation of a numpy dtype, agnostic to
     byteorder, repeated elements, dimensionality, etc. Will not produce
     satisfying results on dtypes with multiple fields.
     """
-    if dt == np.dtype("bool"):
+    if dtype == np.dtype("bool"):
         # bool is always 1 byte wide and does not require
         # disambiguation; however, 'b' by itself means _byte_ (i8);
         # you have to say 'b1' for bool
@@ -26,25 +26,25 @@ def normalize_dt_rep(dt: np.dtype) -> str:
     # the 'object' type denotes a variable-length object or a pointer
     # to a variable-length object; may not be consistently sized across
     # implementations and architectures
-    if dt == np.dtype("O"):
+    if dtype == np.dtype("O"):
         return "O"
     # for timestamp and duration types we need to preserve the precision
-    if dt.base.kind in ("M", "m"):
-        unit, count = np.datetime_data(dt.base)
+    if dtype.base.kind in ("M", "m"):
+        unit, count = np.datetime_data(dtype.base)
         assert count >= 1
         if count == 1:
-            return f"{dt.base.kind}{dt.base.itemsize}[{unit}]"
+            return f"{dtype.base.kind}{dtype.base.itemsize}[{unit}]"
         else:
-            return f"{dt.base.kind}{dt.base.itemsize}[{count}{unit}]"
+            return f"{dtype.base.kind}{dtype.base.itemsize}[{count}{unit}]"
     # treat semi-deprecated 'S' character string type as alias for 'V'
-    if dt.base.kind == "S":
-        return f"V{dt.base.itemsize}"
+    if dtype.base.kind == "S":
+        return f"V{dtype.base.itemsize}"
     # also treat 'U' as alias for 'V' but correct for astropy having altered
     # the itemsize because it uses UTF-32 (yes, -32) internally
-    if dt.base.kind == "U":
-        return f"V{dt.base.itemsize // 4}"
+    if dtype.base.kind == "U":
+        return f"V{dtype.base.itemsize // 4}"
 
-    return f"{dt.base.kind}{dt.base.itemsize}"
+    return f"{dtype.base.kind}{dtype.base.itemsize}"
 
 
 def check_column(name: str, dtype: np.dtype, col: ColumnObject) -> list[str]:
@@ -92,7 +92,6 @@ def check_schema(dtype: np.dtype, spec: DataObject) -> dict[str, list[str]]:
     does not match [ColumnObject(name='age', dtype='i4'),
                     ColumnObject(name='name', dtype='U10')].
     """
-    # TODO: this should probably not return a dict
     if dtype.names is None:
         raise TypeError(
             f"check_schema cannot be applied to the scalar dtype {dtype!r}."
@@ -148,9 +147,7 @@ def check_meta(
     is a legitimate value according to 'spec'.  Return None if it is,
     or a description of the mismatch if it is not.
     """
-    # TODO: ObjectMetadata.value also allows an explicit null
-    # TODO: should handle objtype
-    # TODO: don't smash date(time) to string
+    # TODO, maybe: don't smash date(time) to string
     # TODO: use label_meta.a_type in diagnostics
 
     if spec.value_regex is True:

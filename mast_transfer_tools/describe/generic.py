@@ -33,7 +33,11 @@ class FileDescription:
 
 
 def sanitize_object_description(obj: dict) -> dict:
-    """Clean temporary identifiers added by unify_descriptions() functions."""
+    """
+    Clean temporary identifiers added by unify_descriptions() functions in
+    order to sanitize a description for usage in constructing Filetypes and
+    DataObjects.
+    """
     for k in ("group_id", "stem"):
         obj.pop(k, "")
     if "schema" in obj:
@@ -46,7 +50,15 @@ def sanitize_object_description(obj: dict) -> dict:
 
 def unify_obj_description(
     existing: dict, new: dict
-) -> tuple[dict, list | None]:
+) -> tuple[dict, str | None]:
+    """
+    Attempt to 'unify' two object descriptions.
+
+    Returns:
+        unified: dict describing object unified from `existing` and `new`.
+        failure: string describing failure if unification failed; None if it
+            succeeded
+    """
     unified = new.copy()
     failures = []
     unified_name, name_failures = unify_name(existing, new)
@@ -65,13 +77,21 @@ def unify_obj_description(
     # we actually unify schema in a prior pass and insert them into the
     # unified description after this -- all we care about here is ensuring
     # that there actually _are_ schema to have unified, although it's unlikely
-    # there aren't -- would imply a binary table HDU in which some examples
-    # had an empty data section and some didn't
+    # there aren't -- would imply something like a binary table HDU in which
+    # some examples had an empty data section and some didn't
     failures = None if len(failures) == 0 else "; ".join(failures)
     return unified, failures
 
 
 def unify_name(existing: dict, new: dict) -> tuple[dict, str | None]:
+    """
+    Attempt to unify two name specifications.
+
+    Returns:
+        name: dict giving name specification unified from `existing` and `new`
+        failure: string describing failure if unification failed; None if it
+            succeeded
+    """
     if (stem := new.get("stem")) is not None:
         if existing is not None and existing.get("stem") != stem:
             return {}, "mismatched repeated stem"
@@ -102,6 +122,14 @@ def unify_name(existing: dict, new: dict) -> tuple[dict, str | None]:
 
 
 def unify_column(existing: dict, new: dict) -> tuple[dict, list | None]:
+    """
+    Attempt to 'unify' two column descriptions.
+
+    Returns:
+        column: dict describing column unified from `existing` and `new`
+        failures: list of failures if unification failed; empty list if it
+            succeeded
+    """
     unified = new.copy()
     failures = []
     unified_name, name_failures = unify_name(existing, new)
@@ -118,6 +146,16 @@ def unify_column(existing: dict, new: dict) -> tuple[dict, list | None]:
 
 
 def unify_schema(existing: dict, new: list[dict]) -> tuple[dict, str | None]:
+    """
+    Attempt to 'unify' two schemata, looking for repeated and variably-named
+    columns, checking dtype and ndim match, etc.
+
+    Returns:
+        unified: schema created by unifying `existing` and `new`; or, if
+            unification failed, an empty dict
+        failure: string describing failure if unification failed; None if it
+            succeeded
+    """
     if existing is not None:
         if set(existing.keys()) != set(c["group_id"] for c in new):
             return {}, "incompatible group count"
@@ -138,6 +176,7 @@ def unify_schema(existing: dict, new: list[dict]) -> tuple[dict, str | None]:
 
 
 def _n_unique_groups(files: list[list[dict]]) -> int:
+    """How many unique group counts are there among `files`?"""
     lengths = set()
     for file in files:
         lengths.add(len(set(r["group_id"] for r in file)))
@@ -153,6 +192,12 @@ def chunk_repeated_ordered_objects(
     in objlists. Limited to finding 'repetitions' defined by variable
     numeric / underscore patterns suffixed to some stem, consistently
     ordered with respect to other HDUs / columns across objlists.
+
+    Returns:
+        objlists_mutated: `objlists`, but with "group_id" and "stem" added
+            where relevant; or, if grouping failed, None
+        failure: string describing failure if grouping failed; None if it
+            succeeded
     """
     if _n_unique_groups(objlists) < 2:
         return objlists, None
@@ -189,6 +234,14 @@ def unify_object_lists(
     """
     Attempt to 'unify' an arbitrary number of object lists, including unifying
     any schemata in those objects.
+
+    Returns:
+        objects: dict of unified objects (suitable for use in constructing
+            `DataObject`s after passing through
+            `sanitize_object_description()`) if unification succeeded; None if
+            it failed
+        failure: string describing failure if unification failed; None if it
+            succeeded
     """
     schemata_by_group = defaultdict(list)
     for objlist in objlists:

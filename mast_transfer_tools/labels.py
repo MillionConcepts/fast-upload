@@ -204,9 +204,6 @@ class Contacts(LabelElement):
     ) -> list[tuple[str, str]]:
         errors = []
         lp = "" if lpath == "/" else lpath
-
-        # TODO: Are either of the lists supposed to be nonempty?
-
         # All elements of 'provider' and 'archive' must be email
         # addresses.
         for grp in ("provider", "archive"):
@@ -726,7 +723,6 @@ class Filetype(LabelElement):
         decode_value=decode_as_filepatterns
     )
     ignore: bool = False
-    # TODO: make this an enum?
     # only required if there are objects (see below)
     standard: str = "unspecified"
     objects: list[DataObject] = special_field(
