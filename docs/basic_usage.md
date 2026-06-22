@@ -1,7 +1,7 @@
 # Basic transfer procedure
 
 This represents the simplest case. Further configuration is possible for most of these steps.
-Please refer to `mast-upload`'s help and the [complete label schema description](https://docs.google.com/document/d/19yM66D5tLB07jiX4tJflo3s8cn9KdQFUmkBjyw7oS6Q)
+Please refer to `mast-upload`'s help and the [complete label schema description](label_schema.md)
 for a full description of functionality and options.
 
 ## Complete the label
