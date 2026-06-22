@@ -34,16 +34,15 @@ dependencies = [
     "botocore",
     "click",
     "cytoolz",
-    "dateutil",
     "dustgoggles",
     "hostess[aws]",
     "numpy",
     "pandas",
     "pyarrow",
+    "python-dateutil",
     "pyyaml",
     "requests",
     "rich",
-    "s3fs",
 ]
 
 [project.optional-dependencies]
