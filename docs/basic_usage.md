@@ -15,7 +15,7 @@ Once you receive a skeleton label from MAST:
    files, or make edits if necessary
 4. run `mast-upload validate-all /path/to/data/files {dataset}-{delivery_id}-populated.yml` to confirm that the label
    passes validation against your files
-5. Send the populated label to MAST for verification and possible further refinements. **(Exact method still TBD?)**
+5. Send the populated label to MAST for verification and possible further refinements.
 
 ## Send a sample
 
