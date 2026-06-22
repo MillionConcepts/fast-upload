@@ -762,7 +762,6 @@ def index(
                     f"described by {label}"
                 )
                 sys.exit(1)
-        target_canonical_paths = targets
     else:
         source = Path(source)
         require_directory(source)
@@ -787,16 +786,15 @@ def index(
                     f"No files under {source} are described by {label}"
                 )
                 sys.exit(1)
-        target_canonical_paths = [source / t for t in targets]
 
     if not make_checksums:
-        df = pd.DataFrame({"filename": target_canonical_paths})
+        df = pd.DataFrame({"path": targets})
         df.to_csv(output, index=False)
         return
 
-    checksums = calc_checksums_with_progress(target_canonical_paths)
+    checksums = calc_checksums_with_progress([source / t for t in targets])
     df = pd.DataFrame(
-        {"filename": target_canonical_paths, "checksum": checksums}
+        {"path": targets, "checksum": checksums}
     )
     df.to_csv(output, index=False)
 

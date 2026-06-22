@@ -1,5 +1,11 @@
-import re
+"""
+Like ASDF validation tests, these aren't intended to be as comprehensive as
+FITS and Parquet description tests due to the extreme potential diversity of
+ASDF. They attempt to catch some likely ASDF-specific annoyances.
+"""
+
 from pathlib import Path
+import re
 from typing import Any, cast
 
 import asdf
