@@ -10,10 +10,12 @@ staff at MAST itself, you will probably not have any use for this.
 
 ## Installation
 
-This package will be installable from PyPi in the near future. At present,
-install from source: clone the repo to your computer, create a virtual 
-environment if you wish, and run `pip install .` from repo root. Python >= 
-3.11 is required.
+The package is available on PyPi: `pip install mast-transfer-tools`.
+
+Alternatively, install from source: clone the repo to your computer and run 
+`pip install .` from repo root. 
+
+Python >= 3.11 is required.
 
 ## Usage
 
