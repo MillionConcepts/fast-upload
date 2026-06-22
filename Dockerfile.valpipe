@@ -7,6 +7,7 @@ FROM python:3.14.2-slim-trixie
 RUN apt-get update && apt-get install -y curl jq && rm -rf /var/lib/apt/lists/*
 
 # 3rd-party dependencies
+# NOTE: this step is separate for docker layer efficiency only.
 COPY valpipe-requirements.txt requirements.txt
 RUN pip install --upgrade pip --root-user-action ignore
 RUN pip install -r requirements.txt --root-user-action ignore
