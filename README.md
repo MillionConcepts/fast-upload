@@ -24,4 +24,14 @@ its subcommands are available with `mast-upload --help` and
 [basic_usage.md](/docs/basic_usage.md) includes step-by-step instructions for a 
 standard dataset submission workflow.
 
+## Documentation
+
+Additional documentation, including an API reference, is available at 
+https://fast-upload.readthedocs.io/en/latest/.
+
+## Tests
+
+You can execute the self-tests by running `pytest` from repo root 
+(note that the tests additionally depend on `pytest` and `hypothesis`).
+
 [MAST]: https://archive.stsci.edu/
