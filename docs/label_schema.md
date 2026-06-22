@@ -146,3 +146,4 @@ The schema also does not support explicit per-column description of the followin
 * All floating-point data types must be compliant with IEEE 754\. Legacy floating-point formats (e.g. VAX, IBM) are not supported.  
 * All signed integer data types must be implemented in standard two’s-complement fashion. Other styles of signed integer are not supported.  
 * Parquet table columns of the deprecated INT96 physical type are supported only when assigned a datetime logical type.
+* FITS text table HDUs are not supported.
