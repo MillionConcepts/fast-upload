@@ -108,7 +108,22 @@ class S3TSVWriter:
         while self._bufwait(_sigdict):
             with self.lock:
                 self.buf.seek(0)
-                self.bucket.append(self.buf.read(), self.key, literal_str=True)
+                try:
+                    self.bucket.append(
+                        self.buf.read(), self.key, literal_str=True
+                    )
+                # S3 Express One Zone objects have max 10000 parts, and every
+                # append creates a part. However, there is no way to
+                # explicitly check how many parts a SEOZ object has (at least
+                # if it was not created using multipart upload). So we just
+                # catch TooManyParts and 'compact' the object with a
+                # copy-self-to-self call.
+                except self.bucket.client.exceptions.TooManyParts:
+                    self.bucket.cp(self.key)
+                    self.buf.seek(0)
+                    self.bucket.append(
+                        self.buf.read(), self.key, literal_str=True
+                    )
                 self.buf.close()
                 self.buf = StringIO()
                 self.writer = csv.writer(self.buf, dialect="fastlog")
