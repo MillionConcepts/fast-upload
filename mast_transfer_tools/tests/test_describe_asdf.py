@@ -91,10 +91,13 @@ def test_asdf_description_roundtrip_nested_astropy_table(
 
     objects = _objects_from_descriptions(_object_descriptions([path]))
 
-    assert len(objects) == 1
+    assert len(objects) == 2
     obj = objects[0]
     assert obj.name == ["roman", "products", "catalog"]
     assert obj.objtype == "astropy.table.table.table"
+
+    assert objects[1].name == ["roman"]
+    assert objects[1].objtype == "builtins.dict"
 
     schema = _schema_by_name(obj)
     assert schema["source_id"].dtype == "i4"
@@ -188,7 +191,7 @@ def test_asdf_description_unifies_repeated_astropy_table_names(
 
     objects = _objects_from_descriptions(_object_descriptions(paths))
 
-    assert len(objects) == 1
+    assert len(objects) == 2
     obj = objects[0]
     assert obj.repeated is True
     assert isinstance(obj.name, list)

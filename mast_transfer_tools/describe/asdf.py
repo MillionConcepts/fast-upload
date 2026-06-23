@@ -213,8 +213,22 @@ def describe_file(fn: str | Path, bucket: Bucket | None = None) -> list[dict]:
     obj_descriptions = []
     asdf_file = asdfopen_generic(fn, bucket)
     try:
+        # add "data"
         for path, obj in extract_objects(asdf_file, autoload=True)[0].items():
             obj_descriptions.append(describe_asdf_object(obj) | {"name": path})
+        # add things that look like top-level schemata
+        for k in asdf_file.keys():
+            if k in ("asdf_library", "history"):
+                continue
+            if (k,) in [obj['name'] for obj in obj_descriptions]:
+                continue
+            objtype = type(asdf_file[k])
+            obj_descriptions.append(
+                {
+                    "name": (k,),
+                    "objtype": f"{objtype.__module__}.{objtype.__qualname__}"
+                }
+            )
     finally:
         asdf_file.close()
     return obj_descriptions
