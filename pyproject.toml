@@ -4,7 +4,7 @@
 
 [project]
 name          = "mast_transfer_tools"
-version       = "1.0.2"
+version       = "1.0.3"
 description   = "Upload data sets to MAST using the new FAST protocol"
 readme        = "README.md"
 license       = "BSD-3-Clause"

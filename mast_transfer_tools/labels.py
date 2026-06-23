@@ -351,13 +351,13 @@ class DataObject(LabelElement):
     """
     Represents a single data object -- an array, table, etc. -- in a filetype.
     """
-    objtype: str | None = None
     name: str | list[str] | re.Pattern[str] | list[re.Pattern[str]] | None = (
         special_field(
             default=None,
             decode_with_spec=decode_dataobject_name,
         )
     )
+    objtype: str | None = None
     schema: list[ColumnObject]
     name_regex: bool = False
     dtype: str | None = None
